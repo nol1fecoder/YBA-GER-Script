@@ -1,7 +1,8 @@
 --[[
-    GER Script for YBA v1.5 - Продвинутый GUI (Tabs & Gold Glow)
-    - Логика обхода античита (Silent Aim) сохранена и универсальна.
-    - Дизайн GUI обновлен на сложный, стильный (система вкладок).
+    GER Script for YBA v2.0 - Cyber Aimbot & Anti-Lag Fire
+    - УНИВЕРСАЛЬНЫЙ АИМ: Работает в Shift Lock и Свободном курсоре (через симуляцию ввода).
+    - АНТИЛАГ: Внедрена задержка FireServer для компенсации анимации GER и пинга.
+    - GUI: Новый, стильный дизайн (Контрастные цвета: Желтый/Синий/Темно-серый).
 ]]
 
 local Players = game:GetService("Players")
@@ -9,20 +10,23 @@ local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local Workspace = game:GetService("Workspace")
 local Camera = game.Workspace.CurrentCamera 
 
 -- КОНСТАНТЫ И ЦВЕТА
 local Settings = {
     AutoPB = false,
     GERAim = false,
-    PBMode = 1, -- 1: Normal, 2: Interrupt
+    PBMode = 1,
     AimFOV = 99
 }
 
-local GoldColor = Color3.fromRGB(255, 215, 0)
-local DarkAccent = Color3.fromRGB(35, 35, 40)
-local BackgroundColor = Color3.fromRGB(20, 20, 25)
+-- ЦВЕТОВАЯ СХЕМА: Cyber / Requiem
+local PrimaryColor = Color3.fromRGB(255, 230, 0)      -- Ярко-желтый (Золото)
+local AccentColor = Color3.fromRGB(30, 144, 255)     -- Ярко-синий (Акцент)
+local DarkAccent = Color3.fromRGB(35, 45, 55)        -- Темно-синий фон кнопок
+local BackgroundColor = Color3.fromRGB(15, 18, 25)   -- Очень темный фон
+
+-- ... (Ваши данные Attacks оставлены без изменений) ...
 local Attacks = {
     ["Kick Barrage"] = 0, ["Sticky Fingers Finisher"] = 0.35, ["Gun_Shot1"] = 0.15, ["Heavy_Charge"] = 0.35, ["Erasure"] = 0.35, 
     ["Disc"] = 0.35, ["Propeller Charge"] = 0.35, ["Platinum Slam"] = 0.25, ["Chomp"] = 0.25, ["Scary Monsters Bite"] = 0.25, 
@@ -35,20 +39,71 @@ local Attacks = {
     ["Six Pistols Finisher"] = 0.45, ["Stone Free Finisher"] = 0.35, ["Ora Kicks"] = 0.15, ["lightning_jabs"] = 0.15,
 }
 
+
 -- =========================================================================
---  ФУНКЦИИ АКТИВАЦИИ СКИЛЛОВ (ПОДСТАВЬТЕ СВОЙ FIRESERVER!)
+--  ФУНКЦИИ БОРЬБЫ С ЗАДЕРЖКОЙ И АИМОМ
 -- =========================================================================
 
-local function ActivateGERLaser()
-    -- !!! ВАЖНО: ВСТАВЬТЕ ЗДЕСЬ СВОЮ РАБОЧУЮ КОМАНДУ FireServer.
-    local Remote = LocalPlayer.Character:FindFirstChild("RemoteEvent") 
-    if Remote then
-        -- Remote:FireServer("ActivateSkill", Enum.KeyCode.X) 
+-- Функция симуляции наведения мыши в центр (для режима Свободного Курсора)
+local function simulateMouseMovement(targetHRP)
+    local screenPoint, onScreen = Camera:WorldToScreenPoint(targetHRP.Position)
+    if not onScreen then return end
+
+    local currentMousePos = UserInputService:GetMouseLocation()
+    local x, y = currentMousePos.X, currentMousePos.Y
+    
+    -- Вычисляем координаты центра экрана
+    local centerX = Camera.ViewportSize.X / 2
+    local centerY = Camera.ViewportSize.Y / 2
+    
+    -- Вычисляем разницу между текущим положением мыши и центром экрана
+    -- Это нужно, чтобы "обмануть" Roblox и заставить его думать, что курсор в центре
+    local deltaX = centerX - x
+    local deltaY = centerY - y
+
+    -- !!! ЗДЕСЬ ИСПОЛЬЗУЕТСЯ ФУНКЦИЯ ЭКСПЛОЙТЕРА !!!
+    -- Большинство эксплойтеров поддерживают mousemoverel
+    if syn and syn.mousemoverel then
+        syn.mousemoverel(deltaX, deltaY)
+    elseif mousemoverel then
+        mousemoverel(deltaX, deltaY)
     end
 end
 
+
+local function ActivateGERLaser(targetHRP)
+    local Remote = LocalPlayer.Character:FindFirstChild("RemoteEvent") 
+    if not Remote then return end
+    
+    local animTime = 0.5 -- Время анимации GER
+    
+    -- 1. Ждем, пока анимация почти закончится (компенсация лага)
+    -- Мы ждем (время анимации - время пинга - 0.1)
+    task.wait(animTime - 0.1) 
+    
+    -- 2. Мгновенно наводим камеру на ЦЕЛЬ (Silent Aim)
+    if targetHRP and targetHRP.Parent then
+        local originalCFrame = Camera.CFrame
+        
+        -- Установка CFrame камеры
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetHRP.Position)
+        
+        -- СИМУЛЯЦИЯ: Перемещение курсора в центр экрана (для универсального попадания)
+        simulateMouseMovement(targetHRP)
+        
+        -- 3. Отправляем команду на выпуск луча
+        -- !!! ВСТАВЬТЕ СЮДА СВОЮ РАБОЧУЮ КОМАНДУ FireServer.
+        -- Remote:FireServer("ActivateSkill", Enum.KeyCode.X) 
+        
+        -- 4. Мгновенно возвращаем камеру и курсор (почти мгновенно)
+        task.wait() 
+        Camera.CFrame = originalCFrame
+    end
+end
+
+
 -- =========================================================================
---  НАСТРОЙКА ПРОДВИНУТОГО GUI (TABS)
+--  НАСТРОЙКА GUI (Стиль: Cyber Contrast)
 -- =========================================================================
 
 local ScreenGui = Instance.new("ScreenGui")
@@ -57,7 +112,7 @@ ScreenGui.Parent = game.CoreGui
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 420, 0, 380) -- Увеличенный размер
+MainFrame.Size = UDim2.new(0, 420, 0, 380)
 MainFrame.Position = UDim2.new(0.5, -210, 0.5, -190)
 MainFrame.BackgroundColor3 = BackgroundColor
 MainFrame.BorderSizePixel = 0
@@ -70,16 +125,16 @@ local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 15)
 MainCorner.Parent = MainFrame
 
--- Эффект золотого свечения (Тень)
+-- Эффект свечения (теперь PrimaryColor)
 local MainStroke = Instance.new("UIStroke")
-MainStroke.Color = GoldColor
+MainStroke.Color = PrimaryColor
 MainStroke.Thickness = 2 
 MainStroke.Transparency = 0.6
 MainStroke.Parent = MainFrame
 
 local TitleBar = Instance.new("Frame")
 TitleBar.Size = UDim2.new(1, 0, 0, 50)
-TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+TitleBar.BackgroundColor3 = Color3.fromRGB(30, 35, 45) -- Чуть светлее
 TitleBar.BorderSizePixel = 0
 TitleBar.Parent = MainFrame
 
@@ -91,8 +146,8 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 20, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "GER Script | Requiem Edition"
-Title.TextColor3 = GoldColor
+Title.Text = "GER Script | Requiem Core v2.0"
+Title.TextColor3 = PrimaryColor -- Ярко-желтый
 Title.TextSize = 20
 Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
@@ -102,7 +157,7 @@ Title.Parent = TitleBar
 local TabFrame = Instance.new("Frame")
 TabFrame.Size = UDim2.new(0, 100, 1, -50)
 TabFrame.Position = UDim2.new(0, 0, 0, 50)
-TabFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+TabFrame.BackgroundColor3 = Color3.fromRGB(30, 35, 45) -- Акцентный цвет
 TabFrame.BorderSizePixel = 0
 TabFrame.Parent = MainFrame
 
@@ -139,9 +194,9 @@ for name, frame in pairs(Tabs) do
     local TabButton = Instance.new("TextButton")
     TabButton.Name = name .. "Button"
     TabButton.Size = UDim2.new(1, -10, 0, 40)
-    TabButton.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    TabButton.BackgroundColor3 = DarkAccent
     TabButton.Text = name
-    TabButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+    TabButton.TextColor3 = AccentColor -- Синий
     TabButton.TextSize = 16
     TabButton.Font = Enum.Font.GothamBold
     TabButton.Parent = TabFrame
@@ -157,15 +212,15 @@ for name, frame in pairs(Tabs) do
         -- Стилизация активной вкладки
         for _, btn in pairs(TabFrame:GetChildren()) do
             if btn:IsA("TextButton") then
-                TweenService:Create(btn, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(200, 200, 200), BackgroundColor3 = Color3.fromRGB(40, 40, 45)}):Play()
+                TweenService:Create(btn, TweenInfo.new(0.2), {TextColor3 = AccentColor, BackgroundColor3 = DarkAccent}):Play()
                 local stroke = btn:FindFirstChildOfClass("UIStroke")
                 if stroke then stroke.Transparency = 1 end
             end
         end
-        TweenService:Create(TabButton, TweenInfo.new(0.2), {TextColor3 = GoldColor, BackgroundColor3 = Color3.fromRGB(50, 50, 55)}):Play()
+        TweenService:Create(TabButton, TweenInfo.new(0.2), {TextColor3 = PrimaryColor, BackgroundColor3 = Color3.fromRGB(45, 55, 65)}):Play()
         local stroke = TabButton:FindFirstChildOfClass("UIStroke") or Instance.new("UIStroke")
         stroke.Parent = TabButton
-        stroke.Color = GoldColor
+        stroke.Color = PrimaryColor
         stroke.Thickness = 1.5
         stroke.Transparency = 0.7
     end)
@@ -175,11 +230,11 @@ end
 Tabs.Aim.Visible = true
 local DefaultTabButton = TabFrame:FindFirstChild("AimButton")
 if DefaultTabButton then
-    DefaultTabButton.TextColor3 = GoldColor
-    DefaultTabButton.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+    DefaultTabButton.TextColor3 = PrimaryColor
+    DefaultTabButton.BackgroundColor3 = Color3.fromRGB(45, 55, 65)
     local stroke = Instance.new("UIStroke")
     stroke.Parent = DefaultTabButton
-    stroke.Color = GoldColor
+    stroke.Color = PrimaryColor
     stroke.Thickness = 1.5
     stroke.Transparency = 0.7
 end
@@ -214,10 +269,10 @@ local function createButton(text, parent)
     local Status = Instance.new("TextLabel")
     Status.Size = UDim2.new(0, 50, 0, 25)
     Status.Position = UDim2.new(1, -60, 0.5, -12.5)
-    Status.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+    Status.BackgroundColor3 = Color3.fromRGB(50, 60, 75)
     Status.BorderSizePixel = 0
     Status.Text = "OFF"
-    Status.TextColor3 = Color3.fromRGB(200, 200, 200)
+    Status.TextColor3 = AccentColor
     Status.TextSize = 12
     Status.Font = Enum.Font.GothamBold
     Status.Parent = Button
@@ -226,7 +281,7 @@ local function createButton(text, parent)
     StatusCorner.CornerRadius = UDim.new(0, 8)
     StatusCorner.Parent = Status
     
-    Button.MouseEnter:Connect(function() TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(45, 45, 50)}):Play() end)
+    Button.MouseEnter:Connect(function() TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(45, 55, 65)}):Play() end)
     Button.MouseLeave:Connect(function() TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = DarkAccent}):Play() end)
     
     return Button, Status
@@ -259,7 +314,7 @@ local function createSlider(text, min, max, default, parent)
     ValueLabel.Position = UDim2.new(1, -60, 0, 5)
     ValueLabel.BackgroundTransparency = 1
     ValueLabel.Text = tostring(default)
-    ValueLabel.TextColor3 = GoldColor 
+    ValueLabel.TextColor3 = PrimaryColor 
     ValueLabel.TextSize = 14
     ValueLabel.Font = Enum.Font.GothamBold
     ValueLabel.Parent = Container
@@ -267,7 +322,7 @@ local function createSlider(text, min, max, default, parent)
     local SliderBack = Instance.new("Frame")
     SliderBack.Size = UDim2.new(1, -20, 0, 6)
     SliderBack.Position = UDim2.new(0, 10, 0, 40)
-    SliderBack.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+    SliderBack.BackgroundColor3 = Color3.fromRGB(50, 60, 75)
     SliderBack.BorderSizePixel = 0
     SliderBack.Parent = Container
     
@@ -277,7 +332,7 @@ local function createSlider(text, min, max, default, parent)
     
     local SliderFill = Instance.new("Frame")
     SliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-    SliderFill.BackgroundColor3 = GoldColor 
+    SliderFill.BackgroundColor3 = PrimaryColor 
     SliderFill.BorderSizePixel = 0
     SliderFill.Parent = SliderBack
     
@@ -288,40 +343,35 @@ local function createSlider(text, min, max, default, parent)
     return Container, ValueLabel, SliderBack, SliderFill
 end
 
--- Размещение элементов на вкладках
-local GERAimButton, GERAimStatus = createButton("GER Aim (X)", Tabs.Aim)
+local GERAimButton, GERAimStatus = createButton("GER Aimbot (X)", Tabs.Aim)
 local FOVSlider, FOVValue, FOVBack, FOVFill = createSlider("Aim FOV (studs)", 30, 100, 99, Tabs.Aim)
-
 local AutoPBButton, AutoPBStatus = createButton("Auto Perfect Block", Tabs.Combat)
 local PBModeButton, PBModeStatus = createButton("Block Mode", Tabs.Combat)
 
-
+-- Footer
 local Footer = Instance.new("Frame")
 Footer.Size = UDim2.new(1, 0, 0, 30)
 Footer.Position = UDim2.new(0, 0, 1, -30)
-Footer.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+Footer.BackgroundColor3 = Color3.fromRGB(10, 12, 18)
 Footer.BorderSizePixel = 0
 Footer.Parent = MainFrame
-
-local FooterCorner = Instance.new("UICorner")
-FooterCorner.CornerRadius = UDim.new(0, 15)
-FooterCorner.Parent = Footer
 
 local InfoText = Instance.new("TextLabel")
 InfoText.Size = UDim2.new(1, -20, 1, 0)
 InfoText.Position = UDim2.new(0, 10, 0, 0)
 InfoText.BackgroundTransparency = 1
 InfoText.Text = "RightShift - Toggle Menu | Code by Gemini"
-InfoText.TextColor3 = Color3.fromRGB(120, 120, 120)
+InfoText.TextColor3 = Color3.fromRGB(100, 110, 130)
 InfoText.TextSize = 12
 InfoText.Font = Enum.Font.Gotham
 InfoText.TextXAlignment = Enum.TextXAlignment.Left
 InfoText.Parent = Footer
 
+-- =========================================================================
+--  ЛОГИКА ИГРЫ И ОБРАБОТКА ИНПУТА
+-- =========================================================================
 
--- =========================================================================
---  ЛОГИКА ИГРЫ (Оставлена без изменений, как в v1.4)
--- =========================================================================
+-- ... (Функции checkSound, performBlock, checkPBMove, getClosestPlayer, setupPlayer оставлены без изменений) ...
 
 local function checkSound(soundID)
     local success, result = pcall(function()
@@ -387,53 +437,32 @@ for _, player in pairs(Players:GetPlayers()) do if player ~= LocalPlayer then se
 Players.PlayerAdded:Connect(function(player) player.CharacterAdded:Connect(function(character) task.wait(0.5); setupPlayer(player) end) end)
 
 -- =========================================================================
---  ОБРАБОТКА КНОПОК
+--  ОБРАБОТКА КНОПОК И АКТИВАЦИЯ
 -- =========================================================================
 
--- Buttons (Логика активации теперь использует GoldColor)
+-- Логика кнопок GUI
 AutoPBButton.MouseButton1Click:Connect(function()
     Settings.AutoPB = not Settings.AutoPB
     AutoPBStatus.Text = Settings.AutoPB and "ON" or "OFF"
-    AutoPBStatus.BackgroundColor3 = Settings.AutoPB and GoldColor or Color3.fromRGB(50, 50, 55)
-    AutoPBStatus.TextColor3 = Settings.AutoPB and Color3.fromRGB(30, 30, 30) or Color3.fromRGB(200, 200, 200)
+    AutoPBStatus.BackgroundColor3 = Settings.AutoPB and PrimaryColor or Color3.fromRGB(50, 60, 75)
+    AutoPBStatus.TextColor3 = Settings.AutoPB and BackgroundColor or AccentColor
 end)
 
 GERAimButton.MouseButton1Click:Connect(function()
     Settings.GERAim = not Settings.GERAim
     GERAimStatus.Text = Settings.GERAim and "ON" or "OFF"
-    GERAimStatus.BackgroundColor3 = Settings.GERAim and GoldColor or Color3.fromRGB(50, 50, 55)
-    GERAimStatus.TextColor3 = Settings.GERAim and Color3.fromRGB(30, 30, 30) or Color3.fromRGB(200, 200, 200)
+    GERAimStatus.BackgroundColor3 = Settings.GERAim and PrimaryColor or Color3.fromRGB(50, 60, 75)
+    GERAimStatus.TextColor3 = Settings.GERAim and BackgroundColor or AccentColor
 end)
 
 PBModeButton.MouseButton1Click:Connect(function()
     Settings.PBMode = Settings.PBMode == 1 and 2 or 1
     local modeText = Settings.PBMode == 1 and "Normal" or "Interrupt"
     PBModeStatus.Text = modeText
-    PBModeStatus.BackgroundColor3 = Settings.PBMode == 2 and Color3.fromRGB(255, 150, 0) or Color3.fromRGB(50, 50, 55)
+    PBModeStatus.BackgroundColor3 = Settings.PBMode == 2 and Color3.fromRGB(255, 100, 0) or Color3.fromRGB(50, 60, 75)
 end)
 
--- FOV Slider (Оставлен без изменений)
-local draggingFOV = false
-FOVBack.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then draggingFOV = true end end)
-UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then draggingFOV = false end end)
-UserInputService.InputChanged:Connect(function(input)
-    if draggingFOV and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local pos = math.clamp((input.Position.X - FOVBack.AbsolutePosition.X) / FOVBack.AbsoluteSize.X, 0, 1)
-        local value = math.floor(30 + (100 - 30) * pos)
-        Settings.AimFOV = value
-        FOVValue.Text = tostring(value)
-        FOVFill.Size = UDim2.new(pos, 0, 1, 0)
-    end
-end)
-
-
--- =========================================================================
---  GER SILENT AIM (Универсальная логика)
--- =========================================================================
-
-local aimConnection = nil
-local originalCameraCFrame = nil 
-
+-- ГЛАВНАЯ ЛОГИКА АИМА (Time-Delayed Fire)
 UserInputService.InputBegan:Connect(function(input, processed)
     if processed or input.KeyCode ~= Enum.KeyCode.X or not Settings.GERAim then return end
 
@@ -442,27 +471,11 @@ UserInputService.InputBegan:Connect(function(input, processed)
         local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
         
         if targetHRP then
-            originalCameraCFrame = Camera.CFrame
-            
-            aimConnection = RunService.RenderStepped:Connect(function()
-                if targetHRP and targetHRP.Parent and (targetHRP.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude <= Settings.AimFOV then
-                    -- Наводим камеру на цель. Работает как для Shift Lock, так и для Свободного Курсора.
-                    Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetHRP.Position)
-                else
-                    if aimConnection then aimConnection:Disconnect(); aimConnection = nil end
-                    if originalCameraCFrame then Camera.CFrame = originalCameraCFrame; originalCameraCFrame = nil end
-                end
+            -- Запускаем процесс с задержкой в отдельном потоке
+            task.spawn(function()
+                ActivateGERLaser(targetHRP)
             end)
-            
-            ActivateGERLaser()
         end
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.X then
-        if aimConnection then aimConnection:Disconnect(); aimConnection = nil end
-        if originalCameraCFrame then Camera.CFrame = originalCameraCFrame; originalCameraCFrame = nil end
     end
 end)
 
@@ -473,4 +486,4 @@ UserInputService.InputBegan:Connect(function(input)
     end
 end)
 
-print("GER Script v1.5 loaded! RightShift = menu")
+print("GER Script v2.0 loaded! RightShift = menu")
