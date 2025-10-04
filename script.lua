@@ -1,18 +1,15 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local Debris = game:GetService("Debris")
+local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer 
-local Camera = game.Workspace.CurrentCamera 
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui") 
 
 local Settings = {
     AutoPB = false,
-    GERAim = false,
+    Aimlock = false, -- Новый переключатель для Aimlock
     PBMode = 1,
     AimFOV = 99,
-    ShowAimCircle = true,
 }
 
 local PrimaryColor = Color3.fromRGB(255, 230, 0)         
@@ -31,61 +28,8 @@ local Attacks = {
     ["King Crimson Requiem Finisher"] = 0.35, ["Crazy Diamond Finisher"] = 0.35, ["The World Alternate Universe Finisher"] = 0.35, 
     ["The World Finisher"] = 0.45, ["The World Finisher2"] = 0.45, ["Purple Haze Finisher"] = 0.35, ["Hermit Purple Finisher"] = 0.35, 
     ["Made in Heaven Finisher"] = 0.35, ["Whitesnake Finisher"] = 0.40, ["C-Moon Finisher"] = 0.35, ["Red Hot Chili Pepper Finisher"] = 0.35, 
-    ["Six Pistols Finisher"] = 0.45, ["Stone Free Finisher"] = 0.35, ["Ora Kicks"] = 0.15, ["lightning_jabs"] = 0.15,
+    ["Six Pistols Finisher"] = 0.45, ["Stone Free Finisher"] = 0.45, ["Ora Kicks"] = 0.15, ["lightning_jabs"] = 0.15,
 }
-
-local function createAimCircle(position, color, duration)
-    if not Settings.ShowAimCircle then return end
-    local billboardGui = Instance.new("BillboardGui")
-    billboardGui.Size = UDim2.new(0, 50, 0, 50) 
-    billboardGui.Adornee = Instance.new("Part") 
-    billboardGui.Adornee.Transparency = 1
-    billboardGui.Adornee.CanCollide = false
-    billboardGui.Adornee.Anchored = true
-    billboardGui.Adornee.Position = position
-    billboardGui.Adornee.Parent = game.Workspace
-    billboardGui.ExtentsOffset = Vector3.new(0, 2, 0) 
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 1, 0)
-    frame.BackgroundColor3 = color
-    frame.BackgroundTransparency = 0.6 
-    frame.BorderSizePixel = 0
-    frame.Parent = billboardGui
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0.5, 0) 
-    corner.Parent = frame
-    billboardGui.Parent = PlayerGui 
-    TweenService:Create(frame, TweenInfo.new(duration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {BackgroundTransparency = 1}):Play()
-    Debris:AddItem(billboardGui.Adornee, duration + 0.1)
-    Debris:AddItem(billboardGui, duration + 0.1)
-end
-
-local function ActivateGERLaser(targetHRP)
-    local Character = LocalPlayer.Character
-    if not Character then return end
-    
-    if targetHRP and targetHRP.Parent then
-        local originalCFrame = Camera.CFrame
-        local targetPosition = targetHRP.Position - Vector3.new(0, 1.5, 0) 
-        local targetCFrame = CFrame.new(Camera.CFrame.Position, targetPosition)
-        local tweenDuration = 0.05
-        local tweenInfo = TweenInfo.new(tweenDuration, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
-        
-        -- PURE SILENT AIM: Наводим камеру
-        local tween = TweenService:Create(Camera, tweenInfo, {CFrame = targetCFrame})
-        tween:Play() 
-        
-        -- Ждем, пока пользователь нажмет X для атаки
-        task.wait(0.1)
-        
-        createAimCircle(targetHRP.Position, PrimaryColor, 0.5) 
-        
-        -- УДАЛЕН FireServer. Теперь пользователь должен нажать X вручную.
-        
-        -- Возвращаем камеру мгновенно
-        Camera.CFrame = originalCFrame
-    end
-end
 
 local function checkSound(soundID)
     local success, result = pcall(function()
@@ -167,22 +111,29 @@ end
 for _, player in pairs(Players:GetPlayers()) do if player ~= LocalPlayer then setupPlayer(player) end end
 Players.PlayerAdded:Connect(function(player) player.CharacterAdded:Connect(function(character) task.wait(0.5); setupPlayer(player) end) end)
 
-
-UserInputService.InputBegan:Connect(function(input, processed)
-    if processed or input.KeyCode ~= Enum.KeyCode.X or not Settings.GERAim then return end
-
+-- =========================================================================
+--  AIMLOCK LOGIC (Heartbeat)
+-- =========================================================================
+RunService.Heartbeat:Connect(function()
+    if not Settings.Aimlock then return end
+    local character = LocalPlayer.Character
+    if not character then return end
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return end
+    
     local target = getClosestPlayer()
     if target and target.Character then
         local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
-        
         if targetHRP then
-            -- Silent Aim
-            task.spawn(function()
-                ActivateGERLaser(targetHRP)
-            end)
+            local lookVector = (targetHRP.Position - rootPart.Position).Unit
+            local newCFrame = CFrame.new(rootPart.Position, rootPart.Position + lookVector)
+            
+            -- Принудительно поворачиваем персонажа
+            rootPart.CFrame = newCFrame
         end
     end
 end)
+
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "GERMenu"
@@ -190,8 +141,8 @@ ScreenGui.Parent = PlayerGui
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 480, 0, 320) -- Уменьшен размер из-за удаления ползунка задержки
-MainFrame.Position = UDim2.new(0.5, -240, 0.5, -160)
+MainFrame.Size = UDim2.new(0, 300, 0, 300) -- Увеличен размер для двух вкладок
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -150)
 MainFrame.BackgroundColor3 = GlassBaseColor
 MainFrame.BackgroundTransparency = BaseTransparency 
 MainFrame.BorderSizePixel = 0
@@ -223,7 +174,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0.6, 0, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "GER | Pure Silent Aim v5.0"
+Title.Text = "GER | Aimlock + Auto PB v9.0"
 Title.TextColor3 = PrimaryColor 
 Title.TextSize = 18
 Title.Font = Enum.Font.GothamBold
@@ -285,7 +236,7 @@ for name, frame in pairs(Tabs) do
 
     local TabButton = Instance.new("TextButton")
     TabButton.Name = name .. "Button"
-    TabButton.Size = UDim2.new(0, 80, 0, 30) 
+    TabButton.Size = UDim2.new(0, 60, 0, 30) 
     TabButton.BackgroundColor3 = GlassBaseColor
     TabButton.BackgroundTransparency = 0.5 
     TabButton.Text = name
@@ -457,13 +408,11 @@ local function createSlider(text, min, max, default, step, parent)
     return Container, ValueLabel, SliderBack, SliderFill, min, max, step
 end
 
-local GERAimButton, GERAimStatus = createButton("GER Aimbot (X)", Tabs.Aim)
-local AimCircleButton, AimCircleStatus = createButton("Show Aim Circle", Tabs.Aim)
+local AimlockButton, AimlockStatus = createButton("Simple Aimlock", Tabs.Aim)
 local FOVSlider, FOVValue, FOVBack, FOVFill, FOVMin, FOVMax, FOVStep = createSlider("Aim FOV (studs)", 30, 100, 99, 1, Tabs.Aim)
--- УДАЛЕН ползунок Fire Delay
 
 local AutoPBButton, AutoPBStatus = createButton("Auto Perfect Block", Tabs.Combat)
-local PBModeButton, PBModeStatus = createButton("Block Mode", Tabs.Combat)
+local PBModeButton, PBModeStatus = createButton("Block Mode (Normal)", Tabs.Combat)
 
 local Footer = Instance.new("Frame")
 Footer.Size = UDim2.new(1, 0, 0, 25) 
@@ -477,12 +426,20 @@ local InfoText = Instance.new("TextLabel")
 InfoText.Size = UDim2.new(1, -20, 1, 0)
 InfoText.Position = UDim2.new(0, 10, 0, 0)
 InfoText.BackgroundTransparency = 1
-InfoText.Text = "RightShift - Toggle Menu | v5.0"
+InfoText.Text = "RightShift - Toggle Menu | v9.0"
 InfoText.TextColor3 = Color3.fromRGB(180, 180, 180) 
 InfoText.TextSize = 11
 InfoText.Font = Enum.Font.Gotham
 InfoText.TextXAlignment = Enum.TextXAlignment.Left
 InfoText.Parent = Footer
+
+AimlockButton.MouseButton1Click:Connect(function()
+    Settings.Aimlock = not Settings.Aimlock
+    AimlockStatus.Text = Settings.Aimlock and "ON" or "OFF"
+    AimlockStatus.BackgroundColor3 = Settings.Aimlock and ActiveColor or GlassBaseColor
+    AimlockStatus.BackgroundTransparency = Settings.Aimlock and 0.2 or 0.5
+    AimlockStatus.TextColor3 = Settings.Aimlock and GlassBaseColor or TextColor
+end)
 
 AutoPBButton.MouseButton1Click:Connect(function()
     Settings.AutoPB = not Settings.AutoPB
@@ -492,25 +449,10 @@ AutoPBButton.MouseButton1Click:Connect(function()
     AutoPBStatus.TextColor3 = Settings.AutoPB and GlassBaseColor or TextColor
 end)
 
-GERAimButton.MouseButton1Click:Connect(function()
-    Settings.GERAim = not Settings.GERAim
-    GERAimStatus.Text = Settings.GERAim and "ON" or "OFF"
-    GERAimStatus.BackgroundColor3 = Settings.GERAim and ActiveColor or GlassBaseColor
-    GERAimStatus.BackgroundTransparency = Settings.GERAim and 0.2 or 0.5
-    GERAimStatus.TextColor3 = Settings.GERAim and GlassBaseColor or TextColor
-end)
-
-AimCircleButton.MouseButton1Click:Connect(function()
-    Settings.ShowAimCircle = not Settings.ShowAimCircle
-    AimCircleStatus.Text = Settings.ShowAimCircle and "ON" or "OFF"
-    AimCircleStatus.BackgroundColor3 = Settings.ShowAimCircle and ActiveColor or GlassBaseColor
-    AimCircleStatus.BackgroundTransparency = Settings.ShowAimCircle and 0.2 or 0.5
-    AimCircleStatus.TextColor3 = Settings.ShowAimCircle and GlassBaseColor or TextColor
-end)
-
 PBModeButton.MouseButton1Click:Connect(function()
     Settings.PBMode = Settings.PBMode == 1 and 2 or 1
     local modeText = Settings.PBMode == 1 and "Normal" or "Interrupt"
+    PBModeButton:FindFirstChildOfClass("TextLabel").Text = "Block Mode (" .. modeText .. ")"
     PBModeStatus.Text = modeText
     PBModeStatus.BackgroundColor3 = Settings.PBMode == 2 and SecondaryColor or GlassBaseColor 
     PBModeStatus.BackgroundTransparency = Settings.PBMode == 2 and 0.2 or 0.5
@@ -548,7 +490,6 @@ local function handleSliderInput(sliderBack, sliderFill, valueLabel, minVal, max
 end
 
 handleSliderInput(FOVBack, FOVFill, FOVValue, FOVMin, FOVMax, "AimFOV", 1)
--- УДАЛЕН вызов handleSliderInput для Fire Delay
 
 UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.RightShift then
@@ -556,4 +497,4 @@ UserInputService.InputBegan:Connect(function(input)
     end
 end)
 
-print("GER Pure Silent Aim v5.0 loaded! RightShift = toggle")
+print("GER Aimlock + Auto PB v9.0 loaded! RightShift = toggle")
