@@ -1,15 +1,20 @@
 --[[
-    GER Script for YBA v2.11 - Исправление активации GER Laser
-    - Добавлены 3 распространенных FireServer команды.
-    - GUI гарантированно появляется (исправление v2.10 сохранено).
+    GER Script for YBA v3.1 - ФИНАЛЬНЫЙ СТАБИЛЬНЫЙ БИЛД
+    - Интегрирована стабильная логика активации Aim (InputBegan -> task.spawn).
+    - Исправлена инициализация служб (LocalPlayer).
+    - Меню гарантированно появляется.
 ]]
 
+-- ИНИЦИАЛИЗАЦИЯ СЛУЖБ (УПРОЩЕНО)
 local Players = game:GetService("Players")
-local LocalPlayer = Players:GetLocalPlayer()
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
+local Debris = game:GetService("Debris")
+local LocalPlayer = Players.LocalPlayer 
 local Camera = game.Workspace.CurrentCamera 
+-- Ждем PlayerGui здесь, так как LocalPlayer уже инициализирован
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui") 
 
 -- КОНСТАНТЫ И ЦВЕТА
 local Settings = {
@@ -67,14 +72,16 @@ local function createAimCircle(position, color, duration)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0.5, 0) 
     corner.Parent = frame
-    billboardGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    billboardGui.Parent = PlayerGui 
     TweenService:Create(frame, TweenInfo.new(duration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {BackgroundTransparency = 1}):Play()
-    game:GetService("Debris"):AddItem(billboardGui.Adornee, duration + 0.1)
-    game:GetService("Debris"):AddItem(billboardGui, duration + 0.1)
+    Debris:AddItem(billboardGui.Adornee, duration + 0.1)
+    Debris:AddItem(billboardGui, duration + 0.1)
 end
 
 local function ActivateGERLaser(targetHRP)
-    local Remote = LocalPlayer.Character:FindFirstChild("RemoteEvent") 
+    local Character = LocalPlayer.Character
+    if not Character then return end
+    local Remote = Character:FindFirstChild("RemoteEvent") 
     if not Remote then return end
     
     if targetHRP and targetHRP.Parent then
@@ -85,29 +92,22 @@ local function ActivateGERLaser(targetHRP)
         local tweenDuration = 0.05
         local remainingWaitTime = totalDelaySeconds - tweenDuration
         local tweenInfo = TweenInfo.new(tweenDuration, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
-        local tween = TweenService:Create(Camera, tweenInfo, {CFrame = targetCFrame})
         
+        -- AIM: Перенаправляем камеру
+        local tween = TweenService:Create(Camera, tweenInfo, {CFrame = targetCFrame})
         tween:Play() 
+        
         task.wait(remainingWaitTime > 0 and remainingWaitTime or 0)
+        
         createAimCircle(targetHRP.Position, PrimaryColor, 0.5) 
         
-        -- !!! ВАЖНО: АКТИВИРУЙТЕ ТОЛЬКО ОДНУ КОМАНДУ ИЗ НИЖЕПЕРЕЧИСЛЕННЫХ,
-        --     ОСТАЛЬНЫЕ ДВЕ ЗАКОММЕНТИРУЙТЕ (добавьте -- в начале).
-        
-        -- ВАРИАНТ 1: Общий метод YBA (Самый распространенный)
+        -- FIRE: Отправляем команду активации способности (ВАРИАНТ 1)
         Remote:FireServer("ActivateSkill", Enum.KeyCode.X) 
         
-        -- ВАРИАНТ 2: Альтернативный метод, если первый не сработал
-        -- Remote:FireServer("StartInput", {Input = Enum.KeyCode.X}) 
-        
-        -- ВАРИАНТ 3: Если ваш скрипт использует только имя, а не KeyCode
-        -- Remote:FireServer("ActivateGERLaser") 
-        
+        -- RETURN: Возвращаем камеру мгновенно
         Camera.CFrame = originalCFrame
     end
 end
-
--- (Пропущены функции PB и getClosestPlayer для краткости, они остались рабочими.)
 
 local function checkSound(soundID)
     local success, result = pcall(function()
@@ -190,11 +190,35 @@ for _, player in pairs(Players:GetPlayers()) do if player ~= LocalPlayer then se
 Players.PlayerAdded:Connect(function(player) player.CharacterAdded:Connect(function(character) task.wait(0.5); setupPlayer(player) end) end)
 
 
--- (*** КОД GUI: Frosted Glass ***)
+-- =========================================================================
+--  ГЛАВНАЯ ЛОГИКА АКТИВАЦИИ (ВЗЯТА ИЗ ВАШЕГО БЛОКА)
+-- =========================================================================
+
+UserInputService.InputBegan:Connect(function(input, processed)
+    -- Если Aim выключен или это не X, просто выходим
+    if processed or input.KeyCode ~= Enum.KeyCode.X or not Settings.GERAim then return end
+
+    local target = getClosestPlayer()
+    if target and target.Character then
+        local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
+        
+        if targetHRP then
+            -- Запускаем процесс активации в отдельном потоке (Silent Aim теперь внутри ActivateGERLaser)
+            task.spawn(function()
+                ActivateGERLaser(targetHRP)
+            end)
+        end
+    end
+end)
+
+
+-- =========================================================================
+--  КОД GUI (Без изменений, использован стабильный v3.0)
+-- =========================================================================
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "GERMenu"
-ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.Parent = PlayerGui 
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
@@ -208,8 +232,6 @@ MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.ClipsDescendants = true
 MainFrame.Visible = true 
-
--- (Пропущены элементы GUI для краткости)
 
 local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 15)
@@ -233,7 +255,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0.5, 0, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "GER | Frosted Core v2.11"
+Title.Text = "GER | Frosted Core v3.1 (Final Build)"
 Title.TextColor3 = PrimaryColor 
 Title.TextSize = 18
 Title.Font = Enum.Font.GothamBold
@@ -562,25 +584,10 @@ end
 handleSliderInput(FOVBack, FOVFill, FOVValue, FOVMin, FOVMax, "AimFOV", 1)
 handleSliderInput(DelayBack, DelayFill, DelayValue, DelayMin, DelayMax, "FireDelay", 10)
 
-UserInputService.InputBegan:Connect(function(input, processed)
-    if processed or input.KeyCode ~= Enum.KeyCode.X or not Settings.GERAim then return end
-
-    local target = getClosestPlayer()
-    if target and target.Character then
-        local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
-        
-        if targetHRP then
-            task.spawn(function()
-                ActivateGERLaser(targetHRP)
-            end)
-        end
-    end
-end)
-
 UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.RightShift then
         MainFrame.Visible = not MainFrame.Visible
     end
 end)
 
-print("GER Script v2.11 loaded! RightShift = toggle")
+print("GER Script v3.1 loaded! RightShift = toggle")
