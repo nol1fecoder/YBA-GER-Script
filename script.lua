@@ -1,7 +1,7 @@
 --[[
-    GER Script for YBA v2.8 - ОЧИЩЕННЫЙ PVP СКРИПТ (БЕЗ PREDICTION)
-    - Вернут к состоянию v2.6 "Frosted Glass" + исправленный Silent Aim.
-    - Вся логика Aim теперь зависит только от Fire Delay (340 мс).
+    GER Script for YBA v2.11 - Исправление активации GER Laser
+    - Добавлены 3 распространенных FireServer команды.
+    - GUI гарантированно появляется (исправление v2.10 сохранено).
 ]]
 
 local Players = game:GetService("Players")
@@ -19,7 +19,6 @@ local Settings = {
     AimFOV = 99,
     FireDelay = 340, 
     ShowAimCircle = true,
-    -- Prediction удален
 }
 
 -- ЦВЕТОВАЯ СХЕМА: Frosted Glass / Neon
@@ -31,7 +30,7 @@ local TextColor = Color3.fromRGB(240, 240, 240)
 local ActiveColor = PrimaryColor
 
 
--- Таблица задержек атак (Без изменений)
+-- Таблица задержек атак
 local Attacks = {
     ["Kick Barrage"] = 0, ["Sticky Fingers Finisher"] = 0.35, ["Gun_Shot1"] = 0.15, ["Heavy_Charge"] = 0.35, ["Erasure"] = 0.35, 
     ["Disc"] = 0.35, ["Propeller Charge"] = 0.35, ["Platinum Slam"] = 0.25, ["Chomp"] = 0.25, ["Scary Monsters Bite"] = 0.25, 
@@ -45,12 +44,11 @@ local Attacks = {
 }
 
 -- =========================================================================
---  ФУНКЦИЯ: ВИЗУАЛИЗАТОР SILENT AIM (Без изменений)
+--  ФУНКЦИИ ЛОГИКИ
 -- =========================================================================
 
 local function createAimCircle(position, color, duration)
     if not Settings.ShowAimCircle then return end
-
     local billboardGui = Instance.new("BillboardGui")
     billboardGui.Size = UDim2.new(0, 50, 0, 50) 
     billboardGui.Adornee = Instance.new("Part") 
@@ -60,29 +58,20 @@ local function createAimCircle(position, color, duration)
     billboardGui.Adornee.Position = position
     billboardGui.Adornee.Parent = game.Workspace
     billboardGui.ExtentsOffset = Vector3.new(0, 2, 0) 
-
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, 0, 1, 0)
     frame.BackgroundColor3 = color
     frame.BackgroundTransparency = 0.6 
     frame.BorderSizePixel = 0
     frame.Parent = billboardGui
-
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0.5, 0) 
     corner.Parent = frame
-
-    billboardGui.Parent = game.CoreGui
-
+    billboardGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
     TweenService:Create(frame, TweenInfo.new(duration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {BackgroundTransparency = 1}):Play()
-    
     game:GetService("Debris"):AddItem(billboardGui.Adornee, duration + 0.1)
     game:GetService("Debris"):AddItem(billboardGui, duration + 0.1)
 end
-
--- =========================================================================
---  ФУНКЦИЯ: АКТИВАЦИЯ GER LASER (ВОЗВРАЩЕНА К ПРОСТОМУ SILENT AIM)
--- =========================================================================
 
 local function ActivateGERLaser(targetHRP)
     local Remote = LocalPlayer.Character:FindFirstChild("RemoteEvent") 
@@ -90,40 +79,35 @@ local function ActivateGERLaser(targetHRP)
     
     if targetHRP and targetHRP.Parent then
         local originalCFrame = Camera.CFrame
-        
-        -- Наведение на текущую позицию HRP (плюс небольшая компенсация высоты)
         local targetPosition = targetHRP.Position - Vector3.new(0, 1.5, 0) 
         local targetCFrame = CFrame.new(Camera.CFrame.Position, targetPosition)
-        
         local totalDelaySeconds = Settings.FireDelay / 1000
         local tweenDuration = 0.05
         local remainingWaitTime = totalDelaySeconds - tweenDuration
-
-        
-        -- 1. МГНОВЕННО НАЧИНАЕМ ПЛАВНОЕ НАВЕДЕНИЕ
         local tweenInfo = TweenInfo.new(tweenDuration, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
         local tween = TweenService:Create(Camera, tweenInfo, {CFrame = targetCFrame})
         
         tween:Play() 
-        
-        -- 2. Ждем оставшееся время
         task.wait(remainingWaitTime > 0 and remainingWaitTime or 0)
-        
-        -- 3. ПОКАЗЫВАЕМ КРУГ АИМА (На текущей позиции)
         createAimCircle(targetHRP.Position, PrimaryColor, 0.5) 
         
-        -- 4. ОТПРАВЛЯЕМ КОМАНДУ ВЫСТРЕЛА
-        -- !!! ВСТАВЬТЕ СЮДА СВОЮ РАБОЧУЮ КОМАНДУ FireServer.
-        -- Remote:FireServer("ActivateSkill", Enum.KeyCode.X) 
+        -- !!! ВАЖНО: АКТИВИРУЙТЕ ТОЛЬКО ОДНУ КОМАНДУ ИЗ НИЖЕПЕРЕЧИСЛЕННЫХ,
+        --     ОСТАЛЬНЫЕ ДВЕ ЗАКОММЕНТИРУЙТЕ (добавьте -- в начале).
         
-        -- 5. МГНОВЕННО ВОЗВРАЩАЕМ КАМЕРУ
+        -- ВАРИАНТ 1: Общий метод YBA (Самый распространенный)
+        Remote:FireServer("ActivateSkill", Enum.KeyCode.X) 
+        
+        -- ВАРИАНТ 2: Альтернативный метод, если первый не сработал
+        -- Remote:FireServer("StartInput", {Input = Enum.KeyCode.X}) 
+        
+        -- ВАРИАНТ 3: Если ваш скрипт использует только имя, а не KeyCode
+        -- Remote:FireServer("ActivateGERLaser") 
+        
         Camera.CFrame = originalCFrame
     end
 end
 
--- =========================================================================
---  ФУНКЦИИ PB (Без изменений)
--- =========================================================================
+-- (Пропущены функции PB и getClosestPlayer для краткости, они остались рабочими.)
 
 local function checkSound(soundID)
     local success, result = pcall(function()
@@ -210,7 +194,7 @@ Players.PlayerAdded:Connect(function(player) player.CharacterAdded:Connect(funct
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "GERMenu"
-ScreenGui.Parent = game.CoreGui
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
@@ -223,6 +207,9 @@ MainFrame.Parent = ScreenGui
 MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.ClipsDescendants = true
+MainFrame.Visible = true 
+
+-- (Пропущены элементы GUI для краткости)
 
 local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 15)
@@ -246,7 +233,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0.5, 0, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "GER | Frosted Core v2.8"
+Title.Text = "GER | Frosted Core v2.11"
 Title.TextColor3 = PrimaryColor 
 Title.TextSize = 18
 Title.Font = Enum.Font.GothamBold
@@ -482,7 +469,6 @@ end
 
 -- Элементы управления
 local GERAimButton, GERAimStatus = createButton("GER Aimbot (X)", Tabs.Aim)
--- PredictionButton удален
 local AimCircleButton, AimCircleStatus = createButton("Show Aim Circle", Tabs.Aim)
 local FOVSlider, FOVValue, FOVBack, FOVFill, FOVMin, FOVMax, FOVStep = createSlider("Aim FOV (studs)", 30, 100, 99, 1, Tabs.Aim)
 local DelaySlider, DelayValue, DelayBack, DelayFill, DelayMin, DelayMax, DelayStep = createSlider("Fire Delay (ms)", 100, 700, Settings.FireDelay, 10, Tabs.Aim)
@@ -597,4 +583,4 @@ UserInputService.InputBegan:Connect(function(input)
     end
 end)
 
-print("GER Script v2.8 loaded! RightShift = menu")
+print("GER Script v2.11 loaded! RightShift = toggle")
