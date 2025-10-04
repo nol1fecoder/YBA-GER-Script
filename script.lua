@@ -1,11 +1,3 @@
---[[
-    GER Script for YBA v3.1 - ФИНАЛЬНЫЙ СТАБИЛЬНЫЙ БИЛД
-    - Интегрирована стабильная логика активации Aim (InputBegan -> task.spawn).
-    - Исправлена инициализация служб (LocalPlayer).
-    - Меню гарантированно появляется.
-]]
-
--- ИНИЦИАЛИЗАЦИЯ СЛУЖБ (УПРОЩЕНО)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -13,10 +5,8 @@ local TweenService = game:GetService("TweenService")
 local Debris = game:GetService("Debris")
 local LocalPlayer = Players.LocalPlayer 
 local Camera = game.Workspace.CurrentCamera 
--- Ждем PlayerGui здесь, так как LocalPlayer уже инициализирован
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui") 
 
--- КОНСТАНТЫ И ЦВЕТА
 local Settings = {
     AutoPB = false,
     GERAim = false,
@@ -26,7 +16,6 @@ local Settings = {
     ShowAimCircle = true,
 }
 
--- ЦВЕТОВАЯ СХЕМА: Frosted Glass / Neon
 local PrimaryColor = Color3.fromRGB(255, 230, 0)         
 local SecondaryColor = Color3.fromRGB(0, 200, 255)      
 local GlassBaseColor = Color3.fromRGB(15, 20, 30)        
@@ -34,8 +23,6 @@ local BaseTransparency = 0.35
 local TextColor = Color3.fromRGB(240, 240, 240)         
 local ActiveColor = PrimaryColor
 
-
--- Таблица задержек атак
 local Attacks = {
     ["Kick Barrage"] = 0, ["Sticky Fingers Finisher"] = 0.35, ["Gun_Shot1"] = 0.15, ["Heavy_Charge"] = 0.35, ["Erasure"] = 0.35, 
     ["Disc"] = 0.35, ["Propeller Charge"] = 0.35, ["Platinum Slam"] = 0.25, ["Chomp"] = 0.25, ["Scary Monsters Bite"] = 0.25, 
@@ -47,10 +34,6 @@ local Attacks = {
     ["Made in Heaven Finisher"] = 0.35, ["Whitesnake Finisher"] = 0.40, ["C-Moon Finisher"] = 0.35, ["Red Hot Chili Pepper Finisher"] = 0.35, 
     ["Six Pistols Finisher"] = 0.45, ["Stone Free Finisher"] = 0.35, ["Ora Kicks"] = 0.15, ["lightning_jabs"] = 0.15,
 }
-
--- =========================================================================
---  ФУНКЦИИ ЛОГИКИ
--- =========================================================================
 
 local function createAimCircle(position, color, duration)
     if not Settings.ShowAimCircle then return end
@@ -93,7 +76,6 @@ local function ActivateGERLaser(targetHRP)
         local remainingWaitTime = totalDelaySeconds - tweenDuration
         local tweenInfo = TweenInfo.new(tweenDuration, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
         
-        -- AIM: Перенаправляем камеру
         local tween = TweenService:Create(Camera, tweenInfo, {CFrame = targetCFrame})
         tween:Play() 
         
@@ -101,10 +83,8 @@ local function ActivateGERLaser(targetHRP)
         
         createAimCircle(targetHRP.Position, PrimaryColor, 0.5) 
         
-        -- FIRE: Отправляем команду активации способности (ВАРИАНТ 1)
         Remote:FireServer("ActivateSkill", Enum.KeyCode.X) 
         
-        -- RETURN: Возвращаем камеру мгновенно
         Camera.CFrame = originalCFrame
     end
 end
@@ -190,12 +170,7 @@ for _, player in pairs(Players:GetPlayers()) do if player ~= LocalPlayer then se
 Players.PlayerAdded:Connect(function(player) player.CharacterAdded:Connect(function(character) task.wait(0.5); setupPlayer(player) end) end)
 
 
--- =========================================================================
---  ГЛАВНАЯ ЛОГИКА АКТИВАЦИИ (ВЗЯТА ИЗ ВАШЕГО БЛОКА)
--- =========================================================================
-
 UserInputService.InputBegan:Connect(function(input, processed)
-    -- Если Aim выключен или это не X, просто выходим
     if processed or input.KeyCode ~= Enum.KeyCode.X or not Settings.GERAim then return end
 
     local target = getClosestPlayer()
@@ -203,18 +178,12 @@ UserInputService.InputBegan:Connect(function(input, processed)
         local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
         
         if targetHRP then
-            -- Запускаем процесс активации в отдельном потоке (Silent Aim теперь внутри ActivateGERLaser)
             task.spawn(function()
                 ActivateGERLaser(targetHRP)
             end)
         end
     end
 end)
-
-
--- =========================================================================
---  КОД GUI (Без изменений, использован стабильный v3.0)
--- =========================================================================
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "GERMenu"
@@ -255,7 +224,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0.5, 0, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "GER | Frosted Core v3.1 (Final Build)"
+Title.Text = "GER | Frosted Core v4.1"
 Title.TextColor3 = PrimaryColor 
 Title.TextSize = 18
 Title.Font = Enum.Font.GothamBold
@@ -489,7 +458,6 @@ local function createSlider(text, min, max, default, step, parent)
     return Container, ValueLabel, SliderBack, SliderFill, min, max, step
 end
 
--- Элементы управления
 local GERAimButton, GERAimStatus = createButton("GER Aimbot (X)", Tabs.Aim)
 local AimCircleButton, AimCircleStatus = createButton("Show Aim Circle", Tabs.Aim)
 local FOVSlider, FOVValue, FOVBack, FOVFill, FOVMin, FOVMax, FOVStep = createSlider("Aim FOV (studs)", 30, 100, 99, 1, Tabs.Aim)
@@ -510,14 +478,13 @@ local InfoText = Instance.new("TextLabel")
 InfoText.Size = UDim2.new(1, -20, 1, 0)
 InfoText.Position = UDim2.new(0, 10, 0, 0)
 InfoText.BackgroundTransparency = 1
-InfoText.Text = "RightShift - Toggle Menu | Code by Gemini"
+InfoText.Text = "RightShift - Toggle Menu | v4.1"
 InfoText.TextColor3 = Color3.fromRGB(180, 180, 180) 
 InfoText.TextSize = 11
 InfoText.Font = Enum.Font.Gotham
 InfoText.TextXAlignment = Enum.TextXAlignment.Left
 InfoText.Parent = Footer
 
--- ЛОГИКА АКТИВАЦИИ КНОПОК
 AutoPBButton.MouseButton1Click:Connect(function()
     Settings.AutoPB = not Settings.AutoPB
     AutoPBStatus.Text = Settings.AutoPB and "ON" or "OFF"
@@ -590,4 +557,4 @@ UserInputService.InputBegan:Connect(function(input)
     end
 end)
 
-print("GER Script v3.1 loaded! RightShift = toggle")
+print("GER Script v4.1 loaded! RightShift = toggle")
