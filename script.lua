@@ -1,7 +1,6 @@
 --[[
-    GER Script for YBA
-    Features: AutoPB, GER Silent Aim
-    Made by: Your Name
+    GER Script for YBA v1.1
+    Features: AutoPB, GER Aim, Settings
 ]]
 
 local Players = game:GetService("Players")
@@ -16,9 +15,10 @@ local Settings = {
     AutoPB = false,
     GERAim = false,
     PBMode = 1,
+    AimFOV = 60,
+    AimSmooth = false
 }
 
--- Attacks список
 local Attacks = {
     ["Kick Barrage"] = 0,
     ["Sticky Fingers Finisher"] = 0.35,
@@ -65,8 +65,8 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 350, 0, 280)
-MainFrame.Position = UDim2.new(0.5, -175, 0.5, -140)
+MainFrame.Size = UDim2.new(0, 380, 0, 340)
+MainFrame.Position = UDim2.new(0.5, -190, 0.5, -170)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 MainFrame.BorderSizePixel = 0
 MainFrame.Parent = ScreenGui
@@ -111,22 +111,34 @@ local Version = Instance.new("TextLabel")
 Version.Size = UDim2.new(0, 40, 0, 20)
 Version.Position = UDim2.new(1, -50, 0, 15)
 Version.BackgroundTransparency = 1
-Version.Text = "v1.0"
+Version.Text = "v1.1"
 Version.TextColor3 = Color3.fromRGB(150, 150, 150)
 Version.TextSize = 12
 Version.Font = Enum.Font.GothamBold
 Version.Parent = TitleBar
 
-local Content = Instance.new("Frame")
-Content.Size = UDim2.new(1, -30, 1, -70)
+local Content = Instance.new("ScrollingFrame")
+Content.Size = UDim2.new(1, -30, 1, -100)
 Content.Position = UDim2.new(0, 15, 0, 60)
 Content.BackgroundTransparency = 1
+Content.BorderSizePixel = 0
+Content.ScrollBarThickness = 4
+Content.ScrollBarImageColor3 = Color3.fromRGB(255, 215, 0)
+Content.CanvasSize = UDim2.new(0, 0, 0, 0)
 Content.Parent = MainFrame
 
-local function createButton(text, position, parent)
+local ContentLayout = Instance.new("UIListLayout")
+ContentLayout.Parent = Content
+ContentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ContentLayout.Padding = UDim.new(0, 10)
+
+local function updateContentSize()
+    Content.CanvasSize = UDim2.new(0, 0, 0, ContentLayout.AbsoluteContentSize.Y)
+end
+
+local function createButton(text, parent)
     local Button = Instance.new("TextButton")
-    Button.Size = UDim2.new(1, 0, 0, 45)
-    Button.Position = position
+    Button.Size = UDim2.new(1, -10, 0, 45)
     Button.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
     Button.BorderSizePixel = 0
     Button.Text = ""
@@ -178,9 +190,92 @@ local function createButton(text, position, parent)
     return Button, Status
 end
 
-local AutoPBButton, AutoPBStatus = createButton("Auto Perfect Block", UDim2.new(0, 0, 0, 0), Content)
-local GERAimButton, GERAimStatus = createButton("GER Silent Aim", UDim2.new(0, 0, 0, 55), Content)
-local PBModeButton, PBModeStatus = createButton("Block Mode", UDim2.new(0, 0, 0, 110), Content)
+local function createSlider(text, min, max, default, parent)
+    local Container = Instance.new("Frame")
+    Container.Size = UDim2.new(1, -10, 0, 60)
+    Container.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+    Container.BorderSizePixel = 0
+    Container.Parent = parent
+    
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 10)
+    Corner.Parent = Container
+    
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, -20, 0, 25)
+    Label.Position = UDim2.new(0, 10, 0, 5)
+    Label.BackgroundTransparency = 1
+    Label.Text = text
+    Label.TextColor3 = Color3.new(1, 1, 1)
+    Label.TextSize = 14
+    Label.Font = Enum.Font.GothamBold
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = Container
+    
+    local ValueLabel = Instance.new("TextLabel")
+    ValueLabel.Size = UDim2.new(0, 50, 0, 25)
+    ValueLabel.Position = UDim2.new(1, -60, 0, 5)
+    ValueLabel.BackgroundTransparency = 1
+    ValueLabel.Text = tostring(default)
+    ValueLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+    ValueLabel.TextSize = 14
+    ValueLabel.Font = Enum.Font.GothamBold
+    ValueLabel.Parent = Container
+    
+    local SliderBack = Instance.new("Frame")
+    SliderBack.Size = UDim2.new(1, -20, 0, 6)
+    SliderBack.Position = UDim2.new(0, 10, 0, 40)
+    SliderBack.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+    SliderBack.BorderSizePixel = 0
+    SliderBack.Parent = Container
+    
+    local SliderCorner = Instance.new("UICorner")
+    SliderCorner.CornerRadius = UDim.new(1, 0)
+    SliderCorner.Parent = SliderBack
+    
+    local SliderFill = Instance.new("Frame")
+    SliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    SliderFill.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+    SliderFill.BorderSizePixel = 0
+    SliderFill.Parent = SliderBack
+    
+    local FillCorner = Instance.new("UICorner")
+    FillCorner.CornerRadius = UDim.new(1, 0)
+    FillCorner.Parent = SliderFill
+    
+    local dragging = false
+    
+    SliderBack.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local pos = math.clamp((input.Position.X - SliderBack.AbsolutePosition.X) / SliderBack.AbsoluteSize.X, 0, 1)
+            local value = math.floor(min + (max - min) * pos)
+            SliderFill.Size = UDim2.new(pos, 0, 1, 0)
+            ValueLabel.Text = tostring(value)
+            return value
+        end
+    end)
+    
+    return Container, ValueLabel
+end
+
+-- Создание элементов
+local AutoPBButton, AutoPBStatus = createButton("Auto Perfect Block", Content)
+local GERAimButton, GERAimStatus = createButton("GER Aim", Content)
+local PBModeButton, PBModeStatus = createButton("Block Mode", Content)
+
+local FOVSlider, FOVValue = createSlider("Aim FOV (studs)", 30, 100, 60, Content)
 
 local Footer = Instance.new("Frame")
 Footer.Size = UDim2.new(1, 0, 0, 40)
@@ -197,12 +292,14 @@ local InfoText = Instance.new("TextLabel")
 InfoText.Size = UDim2.new(1, -20, 1, 0)
 InfoText.Position = UDim2.new(0, 10, 0, 0)
 InfoText.BackgroundTransparency = 1
-InfoText.Text = "Insert - Toggle Menu | Made for YBA"
+InfoText.Text = "RightShift - Toggle Menu | Made for YBA"
 InfoText.TextColor3 = Color3.fromRGB(120, 120, 120)
 InfoText.TextSize = 12
 InfoText.Font = Enum.Font.Gotham
 InfoText.TextXAlignment = Enum.TextXAlignment.Left
 InfoText.Parent = Footer
+
+updateContentSize()
 
 -- Functions
 local function checkSound(soundID)
@@ -270,7 +367,7 @@ local function getClosestPlayer()
                 local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
                 if myHRP then
                     local dist = (myHRP.Position - rootPart.Position).Magnitude
-                    if dist < shortestDist and dist < 60 then
+                    if dist < shortestDist and dist < Settings.AimFOV then
                         closest = player
                         shortestDist = dist
                     end
@@ -282,7 +379,7 @@ local function getClosestPlayer()
     return closest
 end
 
--- Button Logic
+-- Buttons Logic
 AutoPBButton.MouseButton1Click:Connect(function()
     Settings.AutoPB = not Settings.AutoPB
     AutoPBStatus.Text = Settings.AutoPB and "ON" or "OFF"
@@ -302,6 +399,31 @@ PBModeButton.MouseButton1Click:Connect(function()
     local modeText = Settings.PBMode == 1 and "Normal" or "Interrupt"
     PBModeStatus.Text = modeText
     PBModeStatus.BackgroundColor3 = Settings.PBMode == 2 and Color3.fromRGB(255, 150, 0) or Color3.fromRGB(50, 50, 55)
+end)
+
+-- FOV Slider
+local draggingFOV = false
+FOVSlider:FindFirstChild("Frame").InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        draggingFOV = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        draggingFOV = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if draggingFOV and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local sliderBack = FOVSlider:FindFirstChild("Frame")
+        local pos = math.clamp((input.Position.X - sliderBack.AbsolutePosition.X) / sliderBack.AbsoluteSize.X, 0, 1)
+        local value = math.floor(30 + (100 - 30) * pos)
+        Settings.AimFOV = value
+        FOVValue.Text = tostring(value)
+        sliderBack:FindFirstChild("Frame").Size = UDim2.new(pos, 0, 1, 0)
+    end
 end)
 
 -- AutoPB System
@@ -330,46 +452,62 @@ Workspace.Living.ChildAdded:Connect(function(player)
     setupPlayer(player)
 end)
 
--- GER Silent Aim System
-local oldNamecall
-oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
-    local args = {...}
-    local method = getnamecallmethod()
+-- GER Aim - прямой метод
+local aimActive = false
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
     
-    if not checkcaller() and method == "FireServer" and self.Name == "RemoteEvent" then
-        if args[1] == "InputBegan" and args[2] and args[2].Input == Enum.KeyCode.X and Settings.GERAim then
-            local target = getClosestPlayer()
-            if target and target.Character then
-                local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
-                local myChar = LocalPlayer.Character
-                local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
-                
-                if targetHRP and myHRP then
-                    -- Silent aim - изменяем направление без поворота камеры
-                    local originalCFrame = myHRP.CFrame
+    if input.KeyCode == Enum.KeyCode.X and Settings.GERAim and not aimActive then
+        aimActive = true
+        
+        local target = getClosestPlayer()
+        if target and target.Character then
+            local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
+            local myChar = LocalPlayer.Character
+            local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+            local remoteEvent = myChar and myChar:FindFirstChild("RemoteEvent")
+            
+            if targetHRP and myHRP and remoteEvent then
+                pcall(function()
                     local lookVector = (targetHRP.Position - myHRP.Position).Unit
                     myHRP.CFrame = CFrame.new(myHRP.Position, myHRP.Position + lookVector)
                     
-                    -- Возвращаем через минимальную задержку
-                    task.spawn(function()
-                        task.wait(0.1)
-                        if myHRP and myHRP.Parent then
-                            myHRP.CFrame = originalCFrame
-                        end
-                    end)
-                end
+                    task.wait(0.05)
+                    
+                    remoteEvent:FireServer("InputBegan", {Input = Enum.KeyCode.X})
+                end)
+            end
+        else
+            -- Если нет цели, просто активируем X
+            local myChar = LocalPlayer.Character
+            local remoteEvent = myChar and myChar:FindFirstChild("RemoteEvent")
+            if remoteEvent then
+                pcall(function()
+                    remoteEvent:FireServer("InputBegan", {Input = Enum.KeyCode.X})
+                end)
             end
         end
     end
-    
-    return oldNamecall(self, ...)
-end))
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.X then
+        aimActive = false
+        local myChar = LocalPlayer.Character
+        local remoteEvent = myChar and myChar:FindFirstChild("RemoteEvent")
+        if remoteEvent then
+            pcall(function()
+                remoteEvent:FireServer("InputEnded", {Input = Enum.KeyCode.X})
+            end)
+        end
+    end
+end)
 
 -- Toggle Menu
 UserInputService.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.Insert then
+    if input.KeyCode == Enum.KeyCode.RightShift then
         MainFrame.Visible = not MainFrame.Visible
     end
 end)
 
-print("GER Script loaded! Press Insert to open menu")
+print("GER Script v1.1 loaded! RightShift = menu")
