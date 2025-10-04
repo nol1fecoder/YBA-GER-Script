@@ -54,7 +54,8 @@ end
 
 local function getTargetPos(char)
     local p = char:FindFirstChild(Settings.TargetPart) or char:FindFirstChild("HumanoidRootPart") 
-    return p and (p.Position + (p.AssemblyVelocity * Settings.PredictionStrength)) or nil 
+    local vel = (p and p.AssemblyVelocity) or Vector3.new(0, 0, 0)
+    return p and (p.Position + (vel * Settings.PredictionStrength)) or nil 
 end
 
 local function getClosestPlayer()
@@ -142,7 +143,6 @@ local function setupPlayer(player)
             local shouldRunPassive = Settings.FullPassive and FULL_PASSIVE_CONFIG[moveName]
             local shouldRunAutoPB = Settings.AutoPB and not Settings.FullPassive and FULL_PASSIVE_CONFIG[moveName] and FULL_PASSIVE_CONFIG[moveName].Type == "Block"
             if shouldRunPassive or shouldRunAutoPB then task.spawn(function() handlePassive(player, moveName) end) end
-            -- M1 Trade logic (опущена для краткости)
         end
     end)
 end
@@ -167,7 +167,7 @@ local Title = Instance.new("TextLabel"); Title.Size = UDim2.new(1, 0, 1, 0); Tit
 local Corner = Instance.new("UICorner"); Corner.CornerRadius = UDim.new(0, 8); Corner.Parent = MainFrame
 
 -- [SCROLLING CONTENT]
-local ScrollFrame = Instance.new("ScrollingFrame"); ScrollFrame.Size = UDim2.new(1, -10, 1, -50); ScrollFrame.Position = UDim2.new(0.5, -130, 0, 45); ScrollFrame.BackgroundTransparency = 1; ScrollFrame.Parent = MainFrame
+local ScrollFrame = Instance.new("ScrollingFrame"); ScrollFrame.Size = UDim2.new(1, -10, 1, -50); ScrollFrame.Position = UDim2.new(0.5, -5, 0, 45); ScrollFrame.BackgroundTransparency = 1; ScrollFrame.Parent = MainFrame
 local ListLayout = Instance.new("UIListLayout"); ListLayout.Parent = ScrollFrame; ListLayout.Padding = UDim.new(0, 8); ListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center; ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
 -- [GUI Building Functions]
@@ -175,7 +175,7 @@ local allButtons = {}
 
 local function createSimpleToggle(text, settingKey, parent)
     local Button = Instance.new("TextButton")
-    Button.Size = UDim2.new(1, -10, 0, 35)
+    Button.Size = UDim2.new(1, 0, 0, 35)
     Button.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
     Button.TextColor3 = TextColor
     Button.Font = Enum.Font.SourceSansBold
@@ -208,7 +208,7 @@ end
 
 local function createModeToggle(text, settingKey, modes, parent)
     local Button = Instance.new("TextButton")
-    Button.Size = UDim2.new(1, -10, 0, 35)
+    Button.Size = UDim2.new(1, 0, 0, 35)
     Button.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
     Button.TextColor3 = TextColor
     Button.Font = Enum.Font.SourceSansBold
@@ -236,7 +236,7 @@ local function createModeToggle(text, settingKey, modes, parent)
 end
 
 local function createFOVSlider(text, settingKey, minVal, maxVal, parent)
-    local Container = Instance.new("Frame"); Container.Size = UDim2.new(1, -10, 0, 45); Container.BackgroundTransparency = 1; Container.Parent = parent
+    local Container = Instance.new("Frame"); Container.Size = UDim2.new(1, 0, 0, 45); Container.BackgroundTransparency = 1; Container.Parent = parent
     local Label = Instance.new("TextLabel"); Label.Size = UDim2.new(1, 0, 0, 15); Label.Text = text .. ": " .. Settings[settingKey]; Label.BackgroundTransparency = 1; Label.TextColor3 = TextColor; Label.TextXAlignment = Enum.TextXAlignment.Left; Label.Font = Enum.Font.SourceSans; Label.TextSize = 14; Label.Parent = Container
 
     local Slider = Instance.new("Frame"); Slider.Size = UDim2.new(1, 0, 0, 10); Slider.Position = UDim2.new(0, 0, 0, 25); Slider.BackgroundColor3 = Color3.fromRGB(50, 50, 50); Slider.Parent = Container
