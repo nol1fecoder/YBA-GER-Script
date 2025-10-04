@@ -1,6 +1,6 @@
 --[[
-    GER Script for YBA v1.1
-    Features: AutoPB, GER Aim, Settings
+    GER Script for YBA v1.2
+    Fixed: Silent Aim now works properly
 ]]
 
 local Players = game:GetService("Players")
@@ -10,13 +10,11 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
--- Настройки
 local Settings = {
     AutoPB = false,
     GERAim = false,
     PBMode = 1,
-    AimFOV = 60,
-    AimSmooth = false
+    AimFOV = 99
 }
 
 local Attacks = {
@@ -57,7 +55,7 @@ local Attacks = {
     ["lightning_jabs"] = 0.15,
 }
 
--- GUI
+-- GUI (оставляю как есть, не буду дублировать весь код GUI)
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "GERMenu"
 ScreenGui.Parent = game.CoreGui
@@ -111,7 +109,7 @@ local Version = Instance.new("TextLabel")
 Version.Size = UDim2.new(0, 40, 0, 20)
 Version.Position = UDim2.new(1, -50, 0, 15)
 Version.BackgroundTransparency = 1
-Version.Text = "v1.1"
+Version.Text = "v1.2"
 Version.TextColor3 = Color3.fromRGB(150, 150, 150)
 Version.TextSize = 12
 Version.Font = Enum.Font.GothamBold
@@ -131,10 +129,6 @@ local ContentLayout = Instance.new("UIListLayout")
 ContentLayout.Parent = Content
 ContentLayout.SortOrder = Enum.SortOrder.LayoutOrder
 ContentLayout.Padding = UDim.new(0, 10)
-
-local function updateContentSize()
-    Content.CanvasSize = UDim2.new(0, 0, 0, ContentLayout.AbsoluteContentSize.Y)
-end
 
 local function createButton(text, parent)
     local Button = Instance.new("TextButton")
@@ -176,15 +170,11 @@ local function createButton(text, parent)
     StatusCorner.Parent = Status
     
     Button.MouseEnter:Connect(function()
-        TweenService:Create(Button, TweenInfo.new(0.2), {
-            BackgroundColor3 = Color3.fromRGB(45, 45, 50)
-        }):Play()
+        TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(45, 45, 50)}):Play()
     end)
     
     Button.MouseLeave:Connect(function()
-        TweenService:Create(Button, TweenInfo.new(0.2), {
-            BackgroundColor3 = Color3.fromRGB(35, 35, 40)
-        }):Play()
+        TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(35, 35, 40)}):Play()
     end)
     
     return Button, Status
@@ -243,39 +233,13 @@ local function createSlider(text, min, max, default, parent)
     FillCorner.CornerRadius = UDim.new(1, 0)
     FillCorner.Parent = SliderFill
     
-    local dragging = false
-    
-    SliderBack.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-        end
-    end)
-    
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
-    
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local pos = math.clamp((input.Position.X - SliderBack.AbsolutePosition.X) / SliderBack.AbsoluteSize.X, 0, 1)
-            local value = math.floor(min + (max - min) * pos)
-            SliderFill.Size = UDim2.new(pos, 0, 1, 0)
-            ValueLabel.Text = tostring(value)
-            return value
-        end
-    end)
-    
-    return Container, ValueLabel
+    return Container, ValueLabel, SliderBack, SliderFill
 end
 
--- Создание элементов
 local AutoPBButton, AutoPBStatus = createButton("Auto Perfect Block", Content)
 local GERAimButton, GERAimStatus = createButton("GER Aim", Content)
 local PBModeButton, PBModeStatus = createButton("Block Mode", Content)
-
-local FOVSlider, FOVValue = createSlider("Aim FOV (studs)", 30, 100, 60, Content)
+local FOVSlider, FOVValue, FOVBack, FOVFill = createSlider("Aim FOV (studs)", 30, 100, 99, Content)
 
 local Footer = Instance.new("Frame")
 Footer.Size = UDim2.new(1, 0, 0, 40)
@@ -299,7 +263,7 @@ InfoText.Font = Enum.Font.Gotham
 InfoText.TextXAlignment = Enum.TextXAlignment.Left
 InfoText.Parent = Footer
 
-updateContentSize()
+Content.CanvasSize = UDim2.new(0, 0, 0, ContentLayout.AbsoluteContentSize.Y)
 
 -- Functions
 local function checkSound(soundID)
@@ -379,7 +343,7 @@ local function getClosestPlayer()
     return closest
 end
 
--- Buttons Logic
+-- Buttons
 AutoPBButton.MouseButton1Click:Connect(function()
     Settings.AutoPB = not Settings.AutoPB
     AutoPBStatus.Text = Settings.AutoPB and "ON" or "OFF"
@@ -403,7 +367,7 @@ end)
 
 -- FOV Slider
 local draggingFOV = false
-FOVSlider:FindFirstChild("Frame").InputBegan:Connect(function(input)
+FOVBack.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         draggingFOV = true
     end
@@ -417,12 +381,11 @@ end)
 
 UserInputService.InputChanged:Connect(function(input)
     if draggingFOV and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local sliderBack = FOVSlider:FindFirstChild("Frame")
-        local pos = math.clamp((input.Position.X - sliderBack.AbsolutePosition.X) / sliderBack.AbsoluteSize.X, 0, 1)
+        local pos = math.clamp((input.Position.X - FOVBack.AbsolutePosition.X) / FOVBack.AbsoluteSize.X, 0, 1)
         local value = math.floor(30 + (100 - 30) * pos)
         Settings.AimFOV = value
         FOVValue.Text = tostring(value)
-        sliderBack:FindFirstChild("Frame").Size = UDim2.new(pos, 0, 1, 0)
+        FOVFill.Size = UDim2.new(pos, 0, 1, 0)
     end
 end)
 
@@ -452,38 +415,30 @@ Workspace.Living.ChildAdded:Connect(function(player)
     setupPlayer(player)
 end)
 
--- GER Aim - прямой метод
-local aimActive = false
+-- GER Silent Aim - НОВЫЙ МЕТОД
+local aimConnection = nil
+local originalCFrame = nil
+
 UserInputService.InputBegan:Connect(function(input, processed)
-    if processed then return end
+    if processed or input.KeyCode ~= Enum.KeyCode.X then return end
     
-    if input.KeyCode == Enum.KeyCode.X and Settings.GERAim and not aimActive then
-        aimActive = true
-        
+    if Settings.GERAim then
         local target = getClosestPlayer()
         if target and target.Character then
             local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
             local myChar = LocalPlayer.Character
             local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
-            local remoteEvent = myChar and myChar:FindFirstChild("RemoteEvent")
             
-            if targetHRP and myHRP and remoteEvent then
-                pcall(function()
-                    local lookVector = (targetHRP.Position - myHRP.Position).Unit
-                    myHRP.CFrame = CFrame.new(myHRP.Position, myHRP.Position + lookVector)
-                    
-                    task.wait(0.05)
-                    
-                    remoteEvent:FireServer("InputBegan", {Input = Enum.KeyCode.X})
-                end)
-            end
-        else
-            -- Если нет цели, просто активируем X
-            local myChar = LocalPlayer.Character
-            local remoteEvent = myChar and myChar:FindFirstChild("RemoteEvent")
-            if remoteEvent then
-                pcall(function()
-                    remoteEvent:FireServer("InputBegan", {Input = Enum.KeyCode.X})
+            if targetHRP and myHRP then
+                -- Сохраняем оригинальный CFrame
+                originalCFrame = myHRP.CFrame
+                
+                -- Постоянно обновляем направление пока X зажат
+                aimConnection = RunService.RenderStepped:Connect(function()
+                    if targetHRP and myHRP and myHRP.Parent then
+                        local lookVector = (targetHRP.Position - myHRP.Position).Unit
+                        myHRP.CFrame = CFrame.new(myHRP.Position, myHRP.Position + lookVector)
+                    end
                 end)
             end
         end
@@ -492,13 +447,19 @@ end)
 
 UserInputService.InputEnded:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.X then
-        aimActive = false
-        local myChar = LocalPlayer.Character
-        local remoteEvent = myChar and myChar:FindFirstChild("RemoteEvent")
-        if remoteEvent then
-            pcall(function()
-                remoteEvent:FireServer("InputEnded", {Input = Enum.KeyCode.X})
-            end)
+        -- Отключаем aim и возвращаем оригинальный CFrame
+        if aimConnection then
+            aimConnection:Disconnect()
+            aimConnection = nil
+        end
+        
+        if originalCFrame then
+            task.wait(0.1)
+            local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if myHRP and myHRP.Parent then
+                myHRP.CFrame = originalCFrame
+            end
+            originalCFrame = nil
         end
     end
 end)
@@ -510,4 +471,4 @@ UserInputService.InputBegan:Connect(function(input)
     end
 end)
 
-print("GER Script v1.1 loaded! RightShift = menu")
+print("GER Script v1.2 loaded! RightShift = menu")
