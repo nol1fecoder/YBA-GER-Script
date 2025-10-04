@@ -12,7 +12,6 @@ local Settings = {
     GERAim = false,
     PBMode = 1,
     AimFOV = 99,
-    FireDelay = 340, 
     ShowAimCircle = true,
 }
 
@@ -64,27 +63,26 @@ end
 local function ActivateGERLaser(targetHRP)
     local Character = LocalPlayer.Character
     if not Character then return end
-    local Remote = Character:FindFirstChild("RemoteEvent") 
-    if not Remote then return end
     
     if targetHRP and targetHRP.Parent then
         local originalCFrame = Camera.CFrame
         local targetPosition = targetHRP.Position - Vector3.new(0, 1.5, 0) 
         local targetCFrame = CFrame.new(Camera.CFrame.Position, targetPosition)
-        local totalDelaySeconds = Settings.FireDelay / 1000
         local tweenDuration = 0.05
-        local remainingWaitTime = totalDelaySeconds - tweenDuration
         local tweenInfo = TweenInfo.new(tweenDuration, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
         
+        -- PURE SILENT AIM: Наводим камеру
         local tween = TweenService:Create(Camera, tweenInfo, {CFrame = targetCFrame})
         tween:Play() 
         
-        task.wait(remainingWaitTime > 0 and remainingWaitTime or 0)
+        -- Ждем, пока пользователь нажмет X для атаки
+        task.wait(0.1)
         
         createAimCircle(targetHRP.Position, PrimaryColor, 0.5) 
         
-        Remote:FireServer("ActivateSkill", Enum.KeyCode.X) 
+        -- УДАЛЕН FireServer. Теперь пользователь должен нажать X вручную.
         
+        -- Возвращаем камеру мгновенно
         Camera.CFrame = originalCFrame
     end
 end
@@ -178,6 +176,7 @@ UserInputService.InputBegan:Connect(function(input, processed)
         local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
         
         if targetHRP then
+            -- Silent Aim
             task.spawn(function()
                 ActivateGERLaser(targetHRP)
             end)
@@ -191,8 +190,8 @@ ScreenGui.Parent = PlayerGui
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 480, 0, 360) 
-MainFrame.Position = UDim2.new(0.5, -240, 0.5, -180)
+MainFrame.Size = UDim2.new(0, 480, 0, 320) -- Уменьшен размер из-за удаления ползунка задержки
+MainFrame.Position = UDim2.new(0.5, -240, 0.5, -160)
 MainFrame.BackgroundColor3 = GlassBaseColor
 MainFrame.BackgroundTransparency = BaseTransparency 
 MainFrame.BorderSizePixel = 0
@@ -221,10 +220,10 @@ TitleBar.BorderSizePixel = 0
 TitleBar.Parent = MainFrame
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(0.5, 0, 1, 0)
+Title.Size = UDim2.new(0.6, 0, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "GER | Frosted Core v4.1"
+Title.Text = "GER | Pure Silent Aim v5.0"
 Title.TextColor3 = PrimaryColor 
 Title.TextSize = 18
 Title.Font = Enum.Font.GothamBold
@@ -232,8 +231,8 @@ Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = TitleBar
 
 local TabFrame = Instance.new("Frame")
-TabFrame.Size = UDim2.new(0.5, -30, 0, 40) 
-TabFrame.Position = UDim2.new(0.5, 15, 0, 0) 
+TabFrame.Size = UDim2.new(0.4, -30, 0, 40) 
+TabFrame.Position = UDim2.new(0.6, 15, 0, 0) 
 TabFrame.BackgroundColor3 = GlassBaseColor
 TabFrame.BackgroundTransparency = 1 
 TabFrame.BorderSizePixel = 0
@@ -461,7 +460,7 @@ end
 local GERAimButton, GERAimStatus = createButton("GER Aimbot (X)", Tabs.Aim)
 local AimCircleButton, AimCircleStatus = createButton("Show Aim Circle", Tabs.Aim)
 local FOVSlider, FOVValue, FOVBack, FOVFill, FOVMin, FOVMax, FOVStep = createSlider("Aim FOV (studs)", 30, 100, 99, 1, Tabs.Aim)
-local DelaySlider, DelayValue, DelayBack, DelayFill, DelayMin, DelayMax, DelayStep = createSlider("Fire Delay (ms)", 100, 700, Settings.FireDelay, 10, Tabs.Aim)
+-- УДАЛЕН ползунок Fire Delay
 
 local AutoPBButton, AutoPBStatus = createButton("Auto Perfect Block", Tabs.Combat)
 local PBModeButton, PBModeStatus = createButton("Block Mode", Tabs.Combat)
@@ -478,7 +477,7 @@ local InfoText = Instance.new("TextLabel")
 InfoText.Size = UDim2.new(1, -20, 1, 0)
 InfoText.Position = UDim2.new(0, 10, 0, 0)
 InfoText.BackgroundTransparency = 1
-InfoText.Text = "RightShift - Toggle Menu | v4.1"
+InfoText.Text = "RightShift - Toggle Menu | v5.0"
 InfoText.TextColor3 = Color3.fromRGB(180, 180, 180) 
 InfoText.TextSize = 11
 InfoText.Font = Enum.Font.Gotham
@@ -549,7 +548,7 @@ local function handleSliderInput(sliderBack, sliderFill, valueLabel, minVal, max
 end
 
 handleSliderInput(FOVBack, FOVFill, FOVValue, FOVMin, FOVMax, "AimFOV", 1)
-handleSliderInput(DelayBack, DelayFill, DelayValue, DelayMin, DelayMax, "FireDelay", 10)
+-- УДАЛЕН вызов handleSliderInput для Fire Delay
 
 UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.RightShift then
@@ -557,4 +556,4 @@ UserInputService.InputBegan:Connect(function(input)
     end
 end)
 
-print("GER Script v4.1 loaded! RightShift = toggle")
+print("GER Pure Silent Aim v5.0 loaded! RightShift = toggle")
