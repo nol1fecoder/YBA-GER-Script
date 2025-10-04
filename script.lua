@@ -1,6 +1,7 @@
 --[[
-    GER Script for YBA v1.2
-    Fixed: Silent Aim now works properly
+    GER Script for YBA v1.3 - Исправлено для обхода Anti-Cheat
+    Фикс: GER Aim теперь использует манипуляции с Camera CFrame (Silent Aim), а не HRP.
+    Обновление: Улучшенный дизайн GUI (Золотая тема GER).
 ]]
 
 local Players = game:GetService("Players")
@@ -9,7 +10,9 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
+local Camera = game.Workspace.CurrentCamera -- Получаем камеру
 
+-- Ваши настройки и данные
 local Settings = {
     AutoPB = false,
     GERAim = false,
@@ -55,7 +58,26 @@ local Attacks = {
     ["lightning_jabs"] = 0.15,
 }
 
--- GUI (оставляю как есть, не буду дублировать весь код GUI)
+-- =========================================================================
+--  ФУНКЦИИ АКТИВАЦИИ СКИЛЛОВ (ДОЛЖНЫ БЫТЬ ЗАПОЛНЕНЫ ВАМИ!)
+-- =========================================================================
+
+local function ActivateGERLaser()
+    -- !!! ВАЖНО: ВСТАВЬТЕ ЗДЕСЬ СВОЮ КОМАНДУ FireServer, 
+    -- которая активирует скилл X (GER Laser).
+    -- ПРИМЕР: LocalPlayer.Character.RemoteEvent:FireServer("ActivateSkill", Enum.KeyCode.X)
+    
+    local Remote = LocalPlayer.Character:FindFirstChild("RemoteEvent") 
+    if Remote then
+        -- Эта строка должна быть адаптирована под ваш рабочий метод!
+        -- Remote:FireServer("ActivateSkill", Enum.KeyCode.X) 
+    end
+end
+
+-- =========================================================================
+--  GUI И НАСТРОЙКА ВИЗУАЛА
+-- =========================================================================
+
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "GERMenu"
 ScreenGui.Parent = game.CoreGui
@@ -76,12 +98,14 @@ local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 15)
 MainCorner.Parent = MainFrame
 
+-- УЛУЧШЕННЫЙ ЗОЛОТОЙ ГРАДИЕНТ
 local Gradient = Instance.new("UIGradient")
 Gradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 30)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 15, 20))
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 230, 100)), 
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 215, 0)), 
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(180, 150, 0))    
 }
-Gradient.Rotation = 45
+Gradient.Rotation = 90
 Gradient.Parent = MainFrame
 
 local TitleBar = Instance.new("Frame")
@@ -109,7 +133,7 @@ local Version = Instance.new("TextLabel")
 Version.Size = UDim2.new(0, 40, 0, 20)
 Version.Position = UDim2.new(1, -50, 0, 15)
 Version.BackgroundTransparency = 1
-Version.Text = "v1.2"
+Version.Text = "v1.3"
 Version.TextColor3 = Color3.fromRGB(150, 150, 150)
 Version.TextSize = 12
 Version.Font = Enum.Font.GothamBold
@@ -225,7 +249,7 @@ local function createSlider(text, min, max, default, parent)
     
     local SliderFill = Instance.new("Frame")
     SliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-    SliderFill.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+    SliderFill.BackgroundColor3 = Color3.fromRGB(255, 215, 0) -- Золотой цвет
     SliderFill.BorderSizePixel = 0
     SliderFill.Parent = SliderBack
     
@@ -265,7 +289,10 @@ InfoText.Parent = Footer
 
 Content.CanvasSize = UDim2.new(0, 0, 0, ContentLayout.AbsoluteContentSize.Y)
 
--- Functions
+-- =========================================================================
+--  ЛОГИКА ИГРЫ
+-- =========================================================================
+
 local function checkSound(soundID)
     local success, result = pcall(function()
         for _, v in pairs(game.ReplicatedStorage.Sounds:GetChildren()) do
@@ -343,19 +370,25 @@ local function getClosestPlayer()
     return closest
 end
 
+-- =========================================================================
+--  ОБРАБОТКА ИНТЕРФЕЙСА (С ЗОЛОТОЙ ТЕМОЙ)
+-- =========================================================================
+
 -- Buttons
 AutoPBButton.MouseButton1Click:Connect(function()
     Settings.AutoPB = not Settings.AutoPB
     AutoPBStatus.Text = Settings.AutoPB and "ON" or "OFF"
-    AutoPBStatus.BackgroundColor3 = Settings.AutoPB and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(50, 50, 55)
-    AutoPBStatus.TextColor3 = Settings.AutoPB and Color3.new(1, 1, 1) or Color3.fromRGB(200, 200, 200)
+    -- ЗОЛОТОЙ ЦВЕТ АКТИВАЦИИ
+    AutoPBStatus.BackgroundColor3 = Settings.AutoPB and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(50, 50, 55)
+    AutoPBStatus.TextColor3 = Settings.AutoPB and Color3.fromRGB(30, 30, 30) or Color3.fromRGB(200, 200, 200)
 end)
 
 GERAimButton.MouseButton1Click:Connect(function()
     Settings.GERAim = not Settings.GERAim
     GERAimStatus.Text = Settings.GERAim and "ON" or "OFF"
-    GERAimStatus.BackgroundColor3 = Settings.GERAim and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(50, 50, 55)
-    GERAimStatus.TextColor3 = Settings.GERAim and Color3.new(1, 1, 1) or Color3.fromRGB(200, 200, 200)
+    -- ЗОЛОТОЙ ЦВЕТ АКТИВАЦИИ
+    GERAimStatus.BackgroundColor3 = Settings.GERAim and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(50, 50, 55)
+    GERAimStatus.TextColor3 = Settings.GERAim and Color3.fromRGB(30, 30, 30) or Color3.fromRGB(200, 200, 200)
 end)
 
 PBModeButton.MouseButton1Click:Connect(function()
@@ -389,77 +422,90 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- AutoPB System
+-- AutoPB System Setup
 local function setupPlayer(player)
-    if player == LocalPlayer.Character then return end
+    if not player.Character then return end -- Убедимся, что это персонаж
     
-    player.DescendantAdded:Connect(function(child)
+    player.Character.DescendantAdded:Connect(function(child)
         if not Settings.AutoPB then return end
         if child:IsA("Sound") and child.SoundId then
             local moveName = checkSound(child.SoundId)
             if moveName then
                 task.spawn(function()
-                    checkPBMove(player, moveName)
+                    checkPBMove(player.Character, moveName)
                 end)
             end
         end
     end)
 end
 
-for _, player in pairs(Workspace.Living:GetChildren()) do
-    setupPlayer(player)
+for _, player in pairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer then
+        setupPlayer(player)
+    end
 end
 
-Workspace.Living.ChildAdded:Connect(function(player)
-    task.wait(0.5)
-    setupPlayer(player)
-end)
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(character)
+        task.wait(0.5)
+        setupPlayer(player)
+    end)
+end
 
--- GER Silent Aim - НОВЫЙ МЕТОД
+-- =========================================================================
+--  GER SILENT AIM (ИСПРАВЛЕННЫЙ)
+-- =========================================================================
+
 local aimConnection = nil
-local originalCFrame = nil
+local originalCameraCFrame = nil 
 
 UserInputService.InputBegan:Connect(function(input, processed)
-    if processed or input.KeyCode ~= Enum.KeyCode.X then return end
-    
-    if Settings.GERAim then
-        local target = getClosestPlayer()
-        if target and target.Character then
-            local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
-            local myChar = LocalPlayer.Character
-            local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    -- Не запускаем Aim, если Aim не включен ИЛИ если нажата не кнопка X
+    if processed or input.KeyCode ~= Enum.KeyCode.X or not Settings.GERAim then return end
+
+    local target = getClosestPlayer()
+    if target and target.Character then
+        local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
+        
+        if targetHRP then
+            -- 1. Сохраняем оригинальный CFrame КАМЕРЫ
+            originalCameraCFrame = Camera.CFrame
             
-            if targetHRP and myHRP then
-                -- Сохраняем оригинальный CFrame
-                originalCFrame = myHRP.CFrame
-                
-                -- Постоянно обновляем направление пока X зажат
-                aimConnection = RunService.RenderStepped:Connect(function()
-                    if targetHRP and myHRP and myHRP.Parent then
-                        local lookVector = (targetHRP.Position - myHRP.Position).Unit
-                        myHRP.CFrame = CFrame.new(myHRP.Position, myHRP.Position + lookVector)
+            -- 2. В цикле наводим камеру на цель (безопасно)
+            aimConnection = RunService.RenderStepped:Connect(function()
+                if targetHRP and targetHRP.Parent and (targetHRP.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude <= Settings.AimFOV then
+                    -- Наводим камеру на цель
+                    Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetHRP.Position)
+                else
+                    -- Если цель пропала или вышла за FOV, отключаем Aim
+                    aimConnection:Disconnect()
+                    aimConnection = nil
+                    -- Возвращаем камеру, чтобы не выглядело подозрительно
+                    if originalCameraCFrame then
+                        Camera.CFrame = originalCameraCFrame
+                        originalCameraCFrame = nil
                     end
-                end)
-            end
+                end
+            end)
+            
+            -- 3. АКТИВИРУЕМ ЛУЧ. (Если ваш эксплойтер не активирует X автоматически при нажатии X)
+            ActivateGERLaser()
         end
     end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.X then
-        -- Отключаем aim и возвращаем оригинальный CFrame
+        -- 1. Отключаем Aim
         if aimConnection then
             aimConnection:Disconnect()
             aimConnection = nil
         end
         
-        if originalCFrame then
-            task.wait(0.1)
-            local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if myHRP and myHRP.Parent then
-                myHRP.CFrame = originalCFrame
-            end
-            originalCFrame = nil
+        -- 2. Возвращаем оригинальный CFrame КАМЕРЫ (это мгновенно и безопасно)
+        if originalCameraCFrame then
+            Camera.CFrame = originalCameraCFrame
+            originalCameraCFrame = nil
         end
     end
 end)
@@ -471,4 +517,4 @@ UserInputService.InputBegan:Connect(function(input)
     end
 end)
 
-print("GER Script v1.2 loaded! RightShift = menu")
+print("GER Script v1.3 loaded! RightShift = menu")
