@@ -23,7 +23,8 @@ local Settings = {
     GERAim = false,
     PBMode = 1,
     AimFOV = 99,
-    PBKey = Enum.KeyCode.F -- Кастомный бинд для AutoPB по умолчанию
+    PBKey = Enum.KeyCode.F,      -- Key to toggle AutoPB (Default: F)
+    GERKeyToggle = Enum.KeyCode.G -- Key to toggle GER Aim on/off (Default: G)
 }
 
 local Attacks = {
@@ -38,18 +39,6 @@ local Attacks = {
     ["Made in Heaven Finisher"] = 0.35, ["Whitesnake Finisher"] = 0.40, ["C-Moon Finisher"] = 0.35, ["Red Hot Chili Pepper Finisher"] = 0.35, 
     ["Six Pistols Finisher"] = 0.45, ["Stone Free Finisher"] = 0.35, ["Ora Kicks"] = 0.15, ["lightning_jabs"] = 0.15,
 }
-
--- =========================================================================
---  SKILL ACTIVATION FUNCTION
--- =========================================================================
-
-local function ActivateGERLaser()
-    -- !!! IMPORTANT: Insert your working FireServer command here.
-    local Remote = LocalPlayer.Character:FindFirstChild("RemoteEvent") 
-    if Remote then
-        -- Remote:FireServer("InputBegan", {Input = Enum.KeyCode.X}) -- Example
-    end
-end
 
 -- =========================================================================
 --  GUI SETUP (Main Hub)
@@ -76,7 +65,7 @@ MainCorner.CornerRadius = UDim.new(0, 15)
 MainCorner.Parent = MainFrame
 
 local MainStroke = Instance.new("UIStroke")
-MainStroke.Color = TornadoGray -- Tornado Gray
+MainStroke.Color = TornadoGray 
 MainStroke.Thickness = 1.5
 MainStroke.Transparency = 0.7
 MainStroke.Parent = MainFrame
@@ -104,15 +93,11 @@ Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 20, 0, 0)
 Title.BackgroundTransparency = 1
 Title.Text = "Mellstroy hub"
-Title.TextColor3 = TornadoGray -- Tornado Gray
+Title.TextColor3 = TornadoGray
 Title.TextSize = 24
 Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = TitleBar
-
--- Удален элемент Version
--- local Version = Instance.new("TextLabel")
--- ...
 
 local Content = Instance.new("ScrollingFrame")
 Content.Size = UDim2.new(1, -30, 1, -100)
@@ -120,7 +105,7 @@ Content.Position = UDim2.new(0, 15, 0, 60)
 Content.BackgroundTransparency = 1
 Content.BorderSizePixel = 0
 Content.ScrollBarThickness = 4
-Content.ScrollBarImageColor3 = TornadoGray -- Tornado Gray Scrollbar
+Content.ScrollBarImageColor3 = TornadoGray
 Content.CanvasSize = UDim2.new(0, 0, 0, 0)
 Content.Parent = MainFrame
 
@@ -165,7 +150,6 @@ local function createButton(text, parent, isKeyBind)
     local KeyDisplay = nil
     
     if isKeyBind then
-        -- Для кнопок с биндом: Status сдвинут, добавлен KeyDisplay
         Status.Position = UDim2.new(1, -115, 0.5, -12.5) 
         
         KeyDisplay = Instance.new("TextLabel")
@@ -173,7 +157,7 @@ local function createButton(text, parent, isKeyBind)
         KeyDisplay.Position = UDim2.new(1, -60, 0.5, -12.5)
         KeyDisplay.BackgroundColor3 = DarkAccent 
         KeyDisplay.BorderSizePixel = 0
-        KeyDisplay.Text = Settings.PBKey.Name -- Отображение текущего бинда
+        KeyDisplay.Text = "KEY" 
         KeyDisplay.TextColor3 = TornadoGray
         KeyDisplay.TextSize = 12
         KeyDisplay.Font = Enum.Font.GothamBold
@@ -183,7 +167,6 @@ local function createButton(text, parent, isKeyBind)
         KeyCorner.CornerRadius = UDim.new(0, 8)
         KeyCorner.Parent = KeyDisplay
     else
-        -- Для обычных кнопок: Status остается справа
         Status.Position = UDim2.new(1, -60, 0.5, -12.5)
     end
 
@@ -201,7 +184,7 @@ local function createButton(text, parent, isKeyBind)
         TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = DarkAccent}):Play()
     end)
     
-    return Button, Status, KeyDisplay -- Возвращаем 3 значения для кнопки с биндом
+    return Button, Status, KeyDisplay 
 end
 
 local function createSlider(text, min, max, default, parent)
@@ -260,9 +243,11 @@ local function createSlider(text, min, max, default, parent)
     return Container, ValueLabel, SliderBack, SliderFill
 end
 
--- Кнопка AutoPB теперь имеет 3 возвращаемых значения
-local AutoPBButton, AutoPBStatus, AutoPBKeyDisplay = createButton("Auto Perfect Block", Content, true)
-local GERAimButton, GERAimStatus = createButton("GER Aim", Content, false)
+-- Кнопки с биндом
+local AutoPBButton, AutoPBStatus, AutoPBKeyDisplay = createButton("Auto Perfect Block (Toggle)", Content, true)
+AutoPBKeyDisplay.Text = Settings.PBKey.Name 
+local GERAimButton, GERAimStatus, GERAimKeyDisplay = createButton("GER Aim (Toggle)", Content, true) 
+GERAimKeyDisplay.Text = Settings.GERKeyToggle.Name 
 local PBModeButton, PBModeStatus = createButton("Block Mode", Content, false)
 local FOVSlider, FOVValue, FOVBack, FOVFill = createSlider("Aim FOV (studs)", 30, 100, 99, Content)
 
@@ -281,7 +266,7 @@ local InfoText = Instance.new("TextLabel")
 InfoText.Size = UDim2.new(1, -20, 1, 0)
 InfoText.Position = UDim2.new(0, 10, 0, 0)
 InfoText.BackgroundTransparency = 1
-InfoText.Text = "RightShift - Toggle Menu | F - Toggle AutoPB"
+InfoText.Text = "RightShift - Menu | F/G - Toggle Features | X - Use GER Aim"
 InfoText.TextColor3 = Color3.fromRGB(120, 120, 120)
 InfoText.TextSize = 12
 InfoText.Font = Enum.Font.Gotham
@@ -295,26 +280,32 @@ Content.CanvasSize = UDim2.new(0, 0, 0, ContentLayout.AbsoluteContentSize.Y)
 -- =========================================================================
 
 local isListeningForKey = false
+local keyToRebind = nil
 
--- Логика изменения бинда для AutoPB
-AutoPBButton.MouseButton1Click:Connect(function()
-    if isListeningForKey then return end
-    isListeningForKey = true
-    AutoPBKeyDisplay.Text = "[...]"
-    AutoPBKeyDisplay.BackgroundColor3 = Color3.fromRGB(255, 150, 0) -- Оранжевый цвет во время ожидания
-    AutoPBKeyDisplay.TextColor3 = TextColorDark
-end)
-
--- Обновление статуса для обычных кнопок
 local function updateToggleStatus(Status, settingState)
     Status.Text = settingState and "ON" or "OFF"
     Status.BackgroundColor3 = settingState and TornadoGray or Color3.fromRGB(50, 50, 55) 
     Status.TextColor3 = settingState and TextColorDark or Color3.fromRGB(200, 200, 200)
 end
 
+-- Логика изменения бинда для AutoPB
+AutoPBButton.MouseButton1Click:Connect(function()
+    if isListeningForKey then return end
+    isListeningForKey = true
+    keyToRebind = "PBKey"
+    AutoPBKeyDisplay.Text = "[...]"
+    AutoPBKeyDisplay.BackgroundColor3 = Color3.fromRGB(255, 150, 0) 
+    AutoPBKeyDisplay.TextColor3 = TextColorDark
+end)
+
+-- Логика изменения бинда для GERAim
 GERAimButton.MouseButton1Click:Connect(function()
-    Settings.GERAim = not Settings.GERAim
-    updateToggleStatus(GERAimStatus, Settings.GERAim)
+    if isListeningForKey then return end
+    isListeningForKey = true
+    keyToRebind = "GERKeyToggle"
+    GERAimKeyDisplay.Text = "[...]"
+    GERAimKeyDisplay.BackgroundColor3 = Color3.fromRGB(255, 150, 0) 
+    GERAimKeyDisplay.TextColor3 = TextColorDark
 end)
 
 PBModeButton.MouseButton1Click:Connect(function()
@@ -325,7 +316,7 @@ PBModeButton.MouseButton1Click:Connect(function()
 end)
 
 -- =========================================================================
---  GAME LOGIC & CAMERA AIM
+--  GAME LOGIC
 -- =========================================================================
 
 local function checkSound(soundID)
@@ -393,6 +384,7 @@ Players.PlayerAdded:Connect(function(player) player.CharacterAdded:Connect(funct
 
 local aimConnection = nil
 local originalCameraCFrame = nil 
+local remoteEvent = game:GetService("Players").LocalPlayer.Character:WaitForChild("RemoteEvent")
 
 -- =========================================================================
 --  INPUT HANDLER (Custom Binds)
@@ -403,23 +395,38 @@ UserInputService.InputBegan:Connect(function(input, processed)
 
     -- 1. ЛОГИКА ПРОСЛУШИВАНИЯ БИНДА (Key Listener)
     if isListeningForKey and not processed and KeyCode.Value ~= 0 and KeyCode ~= Enum.KeyCode.RightShift then
-        Settings.PBKey = KeyCode
+        
+        Settings[keyToRebind] = KeyCode
         isListeningForKey = false
-        AutoPBKeyDisplay.Text = Settings.PBKey.Name
-        AutoPBKeyDisplay.BackgroundColor3 = DarkAccent -- Сброс цвета
-        AutoPBKeyDisplay.TextColor3 = TornadoGray -- Сброс цвета
+        
+        local KeyDisplayElement
+        if keyToRebind == "PBKey" then
+            KeyDisplayElement = AutoPBKeyDisplay
+        elseif keyToRebind == "GERKeyToggle" then
+            KeyDisplayElement = GERAimKeyDisplay
+        end
+        
+        KeyDisplayElement.Text = KeyCode.Name
+        KeyDisplayElement.BackgroundColor3 = DarkAccent 
+        KeyDisplayElement.TextColor3 = TornadoGray 
+        
+        keyToRebind = nil 
         return
     end
 
-    -- 2. ЛОГИКА TOGGLE AUTO PB (Custom PB Key)
+    -- 2. ЛОГИКА TOGGLE AUTO PB
     if KeyCode == Settings.PBKey and not isListeningForKey and not processed then
-        -- Toggle the feature state
         Settings.AutoPB = not Settings.AutoPB
-        -- Update UI status
         updateToggleStatus(AutoPBStatus, Settings.AutoPB)
     end
     
-    -- 3. ЛОГИКА GER AIM (X key, unchanged)
+    -- 3. ЛОГИКА TOGGLE GER AIM
+    if KeyCode == Settings.GERKeyToggle and not isListeningForKey and not processed then
+        Settings.GERAim = not Settings.GERAim
+        updateToggleStatus(GERAimStatus, Settings.GERAim)
+    end
+    
+    -- 4. ЛОГИКА GER AIM (X key - ACTION)
     if not processed and KeyCode == Enum.KeyCode.X and Settings.GERAim then
         local target = getClosestPlayer()
         if target and target.Character then
@@ -434,15 +441,23 @@ UserInputService.InputBegan:Connect(function(input, processed)
                     else
                         if aimConnection then aimConnection:Disconnect(); aimConnection = nil end
                         if originalCameraCFrame then Camera.CFrame = originalCameraCFrame; originalCameraCFrame = nil end
+                        
+                        -- Если цель потеряна, отключаем Aim и отправляем InputEnded
+                        if remoteEvent then
+                            remoteEvent:FireServer("InputEnded", {Input = Enum.KeyCode.X})
+                        end
                     end
                 end)
                 
-                ActivateGERLaser() -- Activate GER Laser when aim starts
+                -- АКТИВАЦИЯ GER AIM: FireServer(InputBegan)
+                if remoteEvent then
+                    remoteEvent:FireServer("InputBegan", {Input = Enum.KeyCode.X})
+                end
             end
         end
     end
     
-    -- 4. TOGGLE MENU (RightShift)
+    -- 5. TOGGLE MENU (RightShift)
     if KeyCode == Enum.KeyCode.RightShift then
         MainFrame.Visible = not MainFrame.Visible
     end
@@ -452,7 +467,12 @@ UserInputService.InputEnded:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.X then
         if aimConnection then aimConnection:Disconnect(); aimConnection = nil end
         if originalCameraCFrame then Camera.CFrame = originalCameraCFrame; originalCameraCFrame = nil end
+
+        -- ОТКЛЮЧЕНИЕ GER AIM: FireServer(InputEnded)
+        if remoteEvent then
+            remoteEvent:FireServer("InputEnded", {Input = Enum.KeyCode.X})
+        end
     end
 end)
 
-print("Mellstroy hub loaded! RightShift = toggle menu, F = toggle AutoPB")
+print("Mellstroy hub loaded! RightShift = toggle menu, F/G = toggle features, X = use GER Aim")
