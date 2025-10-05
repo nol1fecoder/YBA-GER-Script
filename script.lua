@@ -1,24 +1,5 @@
---[[
-    Mellstroy hub v1.5 for YBA
-    - Key System Block REMOVED.
-    - Color Scheme: Tornado Gray (Metallic/Dark Gray).
-    - Optimized Perfect Block & Camera Aim logic.
-    - GUI Parent: CoreGui.
-    - Menu Toggle: RightShift.
-]]
-
 -- =========================================================================
---  COLOR DEFINITIONS
--- =========================================================================
-
-local TornadoGray = Color3.fromRGB(150, 160, 170) -- Новый акцентный цвет (Tornado Gray)
-local DarkAccent = Color3.fromRGB(35, 35, 40)
-local BackgroundColor = Color3.fromRGB(20, 20, 25)
-local TextColorBright = Color3.fromRGB(240, 240, 240)
-local TextColorDark = Color3.fromRGB(30, 30, 30)
-
--- =========================================================================
---  CORE INITIALIZATION
+--  MELLSTROY HUB - CORE INITIALIZATION
 -- =========================================================================
 
 local Players = game:GetService("Players")
@@ -29,12 +10,20 @@ local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 local Camera = game.Workspace.CurrentCamera 
 
--- Settings (unchanged)
+-- COLOR DEFINITIONS
+local TornadoGray = Color3.fromRGB(150, 160, 170) 
+local DarkAccent = Color3.fromRGB(35, 35, 40)
+local BackgroundColor = Color3.fromRGB(20, 20, 25)
+local TextColorBright = Color3.fromRGB(240, 240, 240)
+local TextColorDark = Color3.fromRGB(30, 30, 30)
+
+-- Settings 
 local Settings = {
     AutoPB = false,
     GERAim = false,
     PBMode = 1,
-    AimFOV = 99
+    AimFOV = 99,
+    PBKey = Enum.KeyCode.F -- Кастомный бинд для AutoPB по умолчанию
 }
 
 local Attacks = {
@@ -121,15 +110,9 @@ Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = TitleBar
 
-local Version = Instance.new("TextLabel")
-Version.Size = UDim2.new(0, 40, 0, 20)
-Version.Position = UDim2.new(1, -50, 0, 15)
-Version.BackgroundTransparency = 1
-Version.Text = "v1.5"
-Version.TextColor3 = Color3.fromRGB(150, 150, 150)
-Version.TextSize = 12
-Version.Font = Enum.Font.GothamBold
-Version.Parent = TitleBar
+-- Удален элемент Version
+-- local Version = Instance.new("TextLabel")
+-- ...
 
 local Content = Instance.new("ScrollingFrame")
 Content.Size = UDim2.new(1, -30, 1, -100)
@@ -146,7 +129,7 @@ ContentLayout.Parent = Content
 ContentLayout.SortOrder = Enum.SortOrder.LayoutOrder
 ContentLayout.Padding = UDim.new(0, 10)
 
-local function createButton(text, parent)
+local function createButton(text, parent, isKeyBind)
     local Button = Instance.new("TextButton")
     Button.Size = UDim2.new(1, -10, 0, 45)
     Button.BackgroundColor3 = DarkAccent
@@ -164,7 +147,7 @@ local function createButton(text, parent)
     ButtonText.Position = UDim2.new(0, 10, 0, 0)
     ButtonText.BackgroundTransparency = 1
     ButtonText.Text = text
-    ButtonText.TextColor3 = TextColorBright -- Brighter Text
+    ButtonText.TextColor3 = TextColorBright
     ButtonText.TextSize = 16
     ButtonText.Font = Enum.Font.GothamBold
     ButtonText.TextXAlignment = Enum.TextXAlignment.Left
@@ -172,13 +155,38 @@ local function createButton(text, parent)
     
     local Status = Instance.new("TextLabel")
     Status.Size = UDim2.new(0, 50, 0, 25)
-    Status.Position = UDim2.new(1, -60, 0.5, -12.5)
     Status.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
     Status.BorderSizePixel = 0
     Status.Text = "OFF"
     Status.TextColor3 = Color3.fromRGB(200, 200, 200)
     Status.TextSize = 12
     Status.Font = Enum.Font.GothamBold
+    
+    local KeyDisplay = nil
+    
+    if isKeyBind then
+        -- Для кнопок с биндом: Status сдвинут, добавлен KeyDisplay
+        Status.Position = UDim2.new(1, -115, 0.5, -12.5) 
+        
+        KeyDisplay = Instance.new("TextLabel")
+        KeyDisplay.Size = UDim2.new(0, 50, 0, 25)
+        KeyDisplay.Position = UDim2.new(1, -60, 0.5, -12.5)
+        KeyDisplay.BackgroundColor3 = DarkAccent 
+        KeyDisplay.BorderSizePixel = 0
+        KeyDisplay.Text = Settings.PBKey.Name -- Отображение текущего бинда
+        KeyDisplay.TextColor3 = TornadoGray
+        KeyDisplay.TextSize = 12
+        KeyDisplay.Font = Enum.Font.GothamBold
+        KeyDisplay.Parent = Button
+        
+        local KeyCorner = Instance.new("UICorner")
+        KeyCorner.CornerRadius = UDim.new(0, 8)
+        KeyCorner.Parent = KeyDisplay
+    else
+        -- Для обычных кнопок: Status остается справа
+        Status.Position = UDim2.new(1, -60, 0.5, -12.5)
+    end
+
     Status.Parent = Button
     
     local StatusCorner = Instance.new("UICorner")
@@ -193,7 +201,7 @@ local function createButton(text, parent)
         TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = DarkAccent}):Play()
     end)
     
-    return Button, Status
+    return Button, Status, KeyDisplay -- Возвращаем 3 значения для кнопки с биндом
 end
 
 local function createSlider(text, min, max, default, parent)
@@ -212,7 +220,7 @@ local function createSlider(text, min, max, default, parent)
     Label.Position = UDim2.new(0, 10, 0, 5)
     Label.BackgroundTransparency = 1
     Label.Text = text
-    Label.TextColor3 = TextColorBright -- Brighter Text
+    Label.TextColor3 = TextColorBright
     Label.TextSize = 14
     Label.Font = Enum.Font.GothamBold
     Label.TextXAlignment = Enum.TextXAlignment.Left
@@ -223,7 +231,7 @@ local function createSlider(text, min, max, default, parent)
     ValueLabel.Position = UDim2.new(1, -60, 0, 5)
     ValueLabel.BackgroundTransparency = 1
     ValueLabel.Text = tostring(default)
-    ValueLabel.TextColor3 = TornadoGray -- Tornado Gray
+    ValueLabel.TextColor3 = TornadoGray
     ValueLabel.TextSize = 14
     ValueLabel.Font = Enum.Font.GothamBold
     ValueLabel.Parent = Container
@@ -241,7 +249,7 @@ local function createSlider(text, min, max, default, parent)
     
     local SliderFill = Instance.new("Frame")
     SliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-    SliderFill.BackgroundColor3 = TornadoGray -- Tornado Gray
+    SliderFill.BackgroundColor3 = TornadoGray
     SliderFill.BorderSizePixel = 0
     SliderFill.Parent = SliderBack
     
@@ -252,9 +260,10 @@ local function createSlider(text, min, max, default, parent)
     return Container, ValueLabel, SliderBack, SliderFill
 end
 
-local AutoPBButton, AutoPBStatus = createButton("Auto Perfect Block", Content)
-local GERAimButton, GERAimStatus = createButton("GER Aim", Content)
-local PBModeButton, PBModeStatus = createButton("Block Mode", Content)
+-- Кнопка AutoPB теперь имеет 3 возвращаемых значения
+local AutoPBButton, AutoPBStatus, AutoPBKeyDisplay = createButton("Auto Perfect Block", Content, true)
+local GERAimButton, GERAimStatus = createButton("GER Aim", Content, false)
+local PBModeButton, PBModeStatus = createButton("Block Mode", Content, false)
 local FOVSlider, FOVValue, FOVBack, FOVFill = createSlider("Aim FOV (studs)", 30, 100, 99, Content)
 
 local Footer = Instance.new("Frame")
@@ -272,7 +281,7 @@ local InfoText = Instance.new("TextLabel")
 InfoText.Size = UDim2.new(1, -20, 1, 0)
 InfoText.Position = UDim2.new(0, 10, 0, 0)
 InfoText.BackgroundTransparency = 1
-InfoText.Text = "RightShift - Toggle | Mellstroy hub"
+InfoText.Text = "RightShift - Toggle Menu | F - Toggle AutoPB"
 InfoText.TextColor3 = Color3.fromRGB(120, 120, 120)
 InfoText.TextSize = 12
 InfoText.Font = Enum.Font.Gotham
@@ -285,19 +294,27 @@ Content.CanvasSize = UDim2.new(0, 0, 0, ContentLayout.AbsoluteContentSize.Y)
 --  UI HANDLERS
 -- =========================================================================
 
--- Buttons 
+local isListeningForKey = false
+
+-- Логика изменения бинда для AutoPB
 AutoPBButton.MouseButton1Click:Connect(function()
-    Settings.AutoPB = not Settings.AutoPB
-    AutoPBStatus.Text = Settings.AutoPB and "ON" or "OFF"
-    AutoPBStatus.BackgroundColor3 = Settings.AutoPB and TornadoGray or Color3.fromRGB(50, 50, 55) -- Tornado Gray
-    AutoPBStatus.TextColor3 = Settings.AutoPB and TextColorDark or Color3.fromRGB(200, 200, 200) -- Dark text on bright background
+    if isListeningForKey then return end
+    isListeningForKey = true
+    AutoPBKeyDisplay.Text = "[...]"
+    AutoPBKeyDisplay.BackgroundColor3 = Color3.fromRGB(255, 150, 0) -- Оранжевый цвет во время ожидания
+    AutoPBKeyDisplay.TextColor3 = TextColorDark
 end)
+
+-- Обновление статуса для обычных кнопок
+local function updateToggleStatus(Status, settingState)
+    Status.Text = settingState and "ON" or "OFF"
+    Status.BackgroundColor3 = settingState and TornadoGray or Color3.fromRGB(50, 50, 55) 
+    Status.TextColor3 = settingState and TextColorDark or Color3.fromRGB(200, 200, 200)
+end
 
 GERAimButton.MouseButton1Click:Connect(function()
     Settings.GERAim = not Settings.GERAim
-    GERAimStatus.Text = Settings.GERAim and "ON" or "OFF"
-    GERAimStatus.BackgroundColor3 = Settings.GERAim and TornadoGray or Color3.fromRGB(50, 50, 55) -- Tornado Gray
-    GERAimStatus.TextColor3 = Settings.GERAim and TextColorDark or Color3.fromRGB(200, 200, 200) -- Dark text on bright background
+    updateToggleStatus(GERAimStatus, Settings.GERAim)
 end)
 
 PBModeButton.MouseButton1Click:Connect(function()
@@ -306,13 +323,6 @@ PBModeButton.MouseButton1Click:Connect(function()
     PBModeStatus.Text = modeText
     PBModeStatus.BackgroundColor3 = Settings.PBMode == 2 and Color3.fromRGB(255, 150, 0) or Color3.fromRGB(50, 50, 55)
 end)
-
--- Slider Value Label Update Logic (You may want to add mouse drag logic here later)
-local function updateFOV(value)
-    Settings.AimFOV = math.floor(value)
-    FOVValue.Text = tostring(Settings.AimFOV)
-    FOVFill.Size = UDim2.new((Settings.AimFOV - 30) / (100 - 30), 0, 1, 0)
-end
 
 -- =========================================================================
 --  GAME LOGIC & CAMERA AIM
@@ -384,27 +394,57 @@ Players.PlayerAdded:Connect(function(player) player.CharacterAdded:Connect(funct
 local aimConnection = nil
 local originalCameraCFrame = nil 
 
-UserInputService.InputBegan:Connect(function(input, processed)
-    if processed or input.KeyCode ~= Enum.KeyCode.X or not Settings.GERAim then return end
+-- =========================================================================
+--  INPUT HANDLER (Custom Binds)
+-- =========================================================================
 
-    local target = getClosestPlayer()
-    if target and target.Character then
-        local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
-        
-        if targetHRP then
-            originalCameraCFrame = Camera.CFrame
+UserInputService.InputBegan:Connect(function(input, processed)
+    local KeyCode = input.KeyCode
+
+    -- 1. ЛОГИКА ПРОСЛУШИВАНИЯ БИНДА (Key Listener)
+    if isListeningForKey and not processed and KeyCode.Value ~= 0 and KeyCode ~= Enum.KeyCode.RightShift then
+        Settings.PBKey = KeyCode
+        isListeningForKey = false
+        AutoPBKeyDisplay.Text = Settings.PBKey.Name
+        AutoPBKeyDisplay.BackgroundColor3 = DarkAccent -- Сброс цвета
+        AutoPBKeyDisplay.TextColor3 = TornadoGray -- Сброс цвета
+        return
+    end
+
+    -- 2. ЛОГИКА TOGGLE AUTO PB (Custom PB Key)
+    if KeyCode == Settings.PBKey and not isListeningForKey and not processed then
+        -- Toggle the feature state
+        Settings.AutoPB = not Settings.AutoPB
+        -- Update UI status
+        updateToggleStatus(AutoPBStatus, Settings.AutoPB)
+    end
+    
+    -- 3. ЛОГИКА GER AIM (X key, unchanged)
+    if not processed and KeyCode == Enum.KeyCode.X and Settings.GERAim then
+        local target = getClosestPlayer()
+        if target and target.Character then
+            local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
             
-            aimConnection = RunService.RenderStepped:Connect(function()
-                if targetHRP and targetHRP.Parent and (targetHRP.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude <= Settings.AimFOV then
-                    Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetHRP.Position)
-                else
-                    if aimConnection then aimConnection:Disconnect(); aimConnection = nil end
-                    if originalCameraCFrame then Camera.CFrame = originalCameraCFrame; originalCameraCFrame = nil end
-                end
-            end)
-            
-            ActivateGERLaser() -- Activate GER Laser when aim starts
+            if targetHRP then
+                originalCameraCFrame = Camera.CFrame
+                
+                aimConnection = RunService.RenderStepped:Connect(function()
+                    if targetHRP and targetHRP.Parent and (targetHRP.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude <= Settings.AimFOV then
+                        Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetHRP.Position)
+                    else
+                        if aimConnection then aimConnection:Disconnect(); aimConnection = nil end
+                        if originalCameraCFrame then Camera.CFrame = originalCameraCFrame; originalCameraCFrame = nil end
+                    end
+                end)
+                
+                ActivateGERLaser() -- Activate GER Laser when aim starts
+            end
         end
+    end
+    
+    -- 4. TOGGLE MENU (RightShift)
+    if KeyCode == Enum.KeyCode.RightShift then
+        MainFrame.Visible = not MainFrame.Visible
     end
 end)
 
@@ -415,11 +455,4 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
--- Toggle Menu (RightShift)
-UserInputService.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.RightShift then
-        MainFrame.Visible = not MainFrame.Visible
-    end
-end)
-
-print("Mellstroy hub v1.5 loaded! RightShift = toggle")
+print("Mellstroy hub loaded! RightShift = toggle menu, F = toggle AutoPB")
