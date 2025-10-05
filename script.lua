@@ -1,5 +1,5 @@
 -- =========================================================================
---  MELLSTROY HUB - CORE INITIALIZATION
+-- MELLSTROY HUB - CORE INITIALIZATION (TORNADO VIBES - FINAL CLEAN)
 -- =========================================================================
 
 local Players = game:GetService("Players")
@@ -8,40 +8,42 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
-local Camera = game.Workspace.CurrentCamera 
+local Camera = game.Workspace.CurrentCamera
 
 -- COLOR DEFINITIONS
-local TornadoGray = Color3.fromRGB(150, 160, 170) 
+local TornadoGray = Color3.fromRGB(150, 160, 170)
 local DarkAccent = Color3.fromRGB(35, 35, 40)
 local BackgroundColor = Color3.fromRGB(20, 20, 25)
 local TextColorBright = Color3.fromRGB(240, 240, 240)
 local TextColorDark = Color3.fromRGB(30, 30, 30)
+local AccentColor = Color3.fromRGB(0, 200, 255) -- For ON status
+local RebindColor = Color3.fromRGB(255, 150, 0) -- For rebind mode
 
--- Settings 
+-- Settings
 local Settings = {
     AutoPB = false,
     GERAim = false,
     PBMode = 1,
     AimFOV = 99,
-    PBKey = Enum.KeyCode.F,      -- Key to toggle AutoPB (Default: F)
+    PBKey = Enum.KeyCode.F,       -- Key to toggle AutoPB (Default: F)
     GERKeyToggle = Enum.KeyCode.G -- Key to toggle GER Aim on/off (Default: G)
 }
 
+-- Attack data
 local Attacks = {
-    -- Attack data (unchanged)
-    ["Kick Barrage"] = 0, ["Sticky Fingers Finisher"] = 0.35, ["Gun_Shot1"] = 0.15, ["Heavy_Charge"] = 0.35, ["Erasure"] = 0.35, 
-    ["Disc"] = 0.35, ["Propeller Charge"] = 0.35, ["Platinum Slam"] = 0.25, ["Chomp"] = 0.25, ["Scary Monsters Bite"] = 0.25, 
-    ["D4C Love Train Finisher"] = 0.35, ["D4C Finisher"] = 0.35, ["Tusk ACT 4 Finisher"] = 0.35, ["Gold Experience Finisher"] = 0.35, 
-    ["Gold Experience Requiem Finisher"] = 0.35, ["Scary Monsters Finisher"] = 0.35, ["White Album Finisher"] = 0.35, 
-    ["Star Platinum Finisher"] = 0.35, ["Star Platinum: The World Finisher"] = 0.35, ["King Crimson Finisher"] = 0.35, 
-    ["King Crimson Requiem Finisher"] = 0.35, ["Crazy Diamond Finisher"] = 0.35, ["The World Alternate Universe Finisher"] = 0.35, 
-    ["The World Finisher"] = 0.45, ["The World Finisher2"] = 0.45, ["Purple Haze Finisher"] = 0.35, ["Hermit Purple Finisher"] = 0.35, 
-    ["Made in Heaven Finisher"] = 0.35, ["Whitesnake Finisher"] = 0.40, ["C-Moon Finisher"] = 0.35, ["Red Hot Chili Pepper Finisher"] = 0.35, 
+    ["Kick Barrage"] = 0, ["Sticky Fingers Finisher"] = 0.35, ["Gun_Shot1"] = 0.15, ["Heavy_Charge"] = 0.35, ["Erasure"] = 0.35,
+    ["Disc"] = 0.35, ["Propeller Charge"] = 0.35, ["Platinum Slam"] = 0.25, ["Chomp"] = 0.25, ["Scary Monsters Bite"] = 0.25,
+    ["D4C Love Train Finisher"] = 0.35, ["D4C Finisher"] = 0.35, ["Tusk ACT 4 Finisher"] = 0.35, ["Gold Experience Finisher"] = 0.35,
+    ["Gold Experience Requiem Finisher"] = 0.35, ["Scary Monsters Finisher"] = 0.35, ["White Album Finisher"] = 0.35,
+    ["Star Platinum Finisher"] = 0.35, ["Star Platinum: The World Finisher"] = 0.35, ["King Crimson Finisher"] = 0.35,
+    ["King Crimson Requiem Finisher"] = 0.35, ["Crazy Diamond Finisher"] = 0.35, ["The World Alternate Universe Finisher"] = 0.35,
+    ["The World Finisher"] = 0.45, ["The World Finisher2"] = 0.45, ["Purple Haze Finisher"] = 0.35, ["Hermit Purple Finisher"] = 0.35,
+    ["Made in Heaven Finisher"] = 0.35, ["Whitesnake Finisher"] = 0.40, ["C-Moon Finisher"] = 0.35, ["Red Hot Chili Pepper Finisher"] = 0.35,
     ["Six Pistols Finisher"] = 0.45, ["Stone Free Finisher"] = 0.35, ["Ora Kicks"] = 0.15, ["lightning_jabs"] = 0.15,
 }
 
 -- =========================================================================
---  GUI SETUP (Main Hub)
+-- GUI SETUP
 -- =========================================================================
 
 local ScreenGui = Instance.new("ScreenGui")
@@ -65,7 +67,7 @@ MainCorner.CornerRadius = UDim.new(0, 15)
 MainCorner.Parent = MainFrame
 
 local MainStroke = Instance.new("UIStroke")
-MainStroke.Color = TornadoGray 
+MainStroke.Color = TornadoGray
 MainStroke.Thickness = 1.5
 MainStroke.Transparency = 0.7
 MainStroke.Parent = MainFrame
@@ -92,7 +94,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 20, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "Mellstroy hub"
+Title.Text = "Mellstroy hub (Classic)"
 Title.TextColor3 = TornadoGray
 Title.TextSize = 24
 Title.Font = Enum.Font.GothamBold
@@ -122,11 +124,11 @@ local function createButton(text, parent, isKeyBind)
     Button.Text = ""
     Button.AutoButtonColor = false
     Button.Parent = parent
-    
+
     local Corner = Instance.new("UICorner")
     Corner.CornerRadius = UDim.new(0, 10)
     Corner.Parent = Button
-    
+
     local ButtonText = Instance.new("TextLabel")
     ButtonText.Size = UDim2.new(1, -20, 1, 0)
     ButtonText.Position = UDim2.new(0, 10, 0, 0)
@@ -137,7 +139,7 @@ local function createButton(text, parent, isKeyBind)
     ButtonText.Font = Enum.Font.GothamBold
     ButtonText.TextXAlignment = Enum.TextXAlignment.Left
     ButtonText.Parent = Button
-    
+
     local Status = Instance.new("TextLabel")
     Status.Size = UDim2.new(0, 50, 0, 25)
     Status.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
@@ -146,23 +148,25 @@ local function createButton(text, parent, isKeyBind)
     Status.TextColor3 = Color3.fromRGB(200, 200, 200)
     Status.TextSize = 12
     Status.Font = Enum.Font.GothamBold
-    
+
     local KeyDisplay = nil
-    
+
     if isKeyBind then
-        Status.Position = UDim2.new(1, -115, 0.5, -12.5) 
-        
-        KeyDisplay = Instance.new("TextLabel")
+        ButtonText.Size = UDim2.new(1, -130, 1, 0)
+
+        Status.Position = UDim2.new(1, -115, 0.5, -12.5)
+
+        KeyDisplay = Instance.new("TextButton")
         KeyDisplay.Size = UDim2.new(0, 50, 0, 25)
         KeyDisplay.Position = UDim2.new(1, -60, 0.5, -12.5)
-        KeyDisplay.BackgroundColor3 = DarkAccent 
+        KeyDisplay.BackgroundColor3 = DarkAccent
         KeyDisplay.BorderSizePixel = 0
-        KeyDisplay.Text = "KEY" 
+        KeyDisplay.Text = "KEY"
         KeyDisplay.TextColor3 = TornadoGray
         KeyDisplay.TextSize = 12
         KeyDisplay.Font = Enum.Font.GothamBold
         KeyDisplay.Parent = Button
-        
+
         local KeyCorner = Instance.new("UICorner")
         KeyCorner.CornerRadius = UDim.new(0, 8)
         KeyCorner.Parent = KeyDisplay
@@ -171,20 +175,20 @@ local function createButton(text, parent, isKeyBind)
     end
 
     Status.Parent = Button
-    
+
     local StatusCorner = Instance.new("UICorner")
     StatusCorner.CornerRadius = UDim.new(0, 8)
     StatusCorner.Parent = Status
-    
+
     Button.MouseEnter:Connect(function()
         TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(45, 45, 50)}):Play()
     end)
-    
+
     Button.MouseLeave:Connect(function()
         TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = DarkAccent}):Play()
     end)
-    
-    return Button, Status, KeyDisplay 
+
+    return Button, Status, KeyDisplay
 end
 
 local function createSlider(text, min, max, default, parent)
@@ -193,13 +197,13 @@ local function createSlider(text, min, max, default, parent)
     Container.BackgroundColor3 = DarkAccent
     Container.BorderSizePixel = 0
     Container.Parent = parent
-    
+
     local Corner = Instance.new("UICorner")
     Corner.CornerRadius = UDim.new(0, 10)
     Corner.Parent = Container
-    
+
     local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1, -20, 0, 25)
+    Label.Size = UDim2.new(1, -100, 0, 25)
     Label.Position = UDim2.new(0, 10, 0, 5)
     Label.BackgroundTransparency = 1
     Label.Text = text
@@ -208,48 +212,81 @@ local function createSlider(text, min, max, default, parent)
     Label.Font = Enum.Font.GothamBold
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.Parent = Container
-    
+
     local ValueLabel = Instance.new("TextLabel")
-    ValueLabel.Size = UDim2.new(0, 50, 0, 25)
-    ValueLabel.Position = UDim2.new(1, -60, 0, 5)
+    ValueLabel.Size = UDim2.new(0, 70, 0, 25)
+    ValueLabel.Position = UDim2.new(1, -80, 0, 5)
     ValueLabel.BackgroundTransparency = 1
     ValueLabel.Text = tostring(default)
     ValueLabel.TextColor3 = TornadoGray
     ValueLabel.TextSize = 14
     ValueLabel.Font = Enum.Font.GothamBold
     ValueLabel.Parent = Container
-    
+
     local SliderBack = Instance.new("Frame")
     SliderBack.Size = UDim2.new(1, -20, 0, 6)
     SliderBack.Position = UDim2.new(0, 10, 0, 40)
     SliderBack.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
     SliderBack.BorderSizePixel = 0
     SliderBack.Parent = Container
-    
+
     local SliderCorner = Instance.new("UICorner")
     SliderCorner.CornerRadius = UDim.new(1, 0)
     SliderCorner.Parent = SliderBack
-    
+
     local SliderFill = Instance.new("Frame")
-    SliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-    SliderFill.BackgroundColor3 = TornadoGray
+    -- Calculate initial fill based on min/max
+    SliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0) 
+    SliderFill.BackgroundColor3 = AccentColor
     SliderFill.BorderSizePixel = 0
     SliderFill.Parent = SliderBack
-    
+
     local FillCorner = Instance.new("UICorner")
     FillCorner.CornerRadius = UDim.new(1, 0)
     FillCorner.Parent = SliderFill
-    
+
+    -- Interactivity
+    local dragging = false
+    local function updateSlider(inputPos)
+        local absPos = SliderBack.AbsolutePosition
+        local relX = math.clamp((inputPos.X - absPos.X) / SliderBack.AbsoluteSize.X, 0, 1)
+        local newVal = math.floor(min + relX * (max - min))
+        SliderFill.Size = UDim2.new(relX, 0, 1, 0)
+        ValueLabel.Text = tostring(newVal)
+        Settings.AimFOV = newVal -- Update setting here
+    end
+
+    local conn1, conn2, conn3
+    conn1 = SliderBack.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            updateSlider(UserInputService:GetMouseLocation())
+        end
+    end)
+    conn2 = UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            updateSlider(UserInputService:GetMouseLocation())
+        end
+    end)
+    conn3 = UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+
     return Container, ValueLabel, SliderBack, SliderFill
 end
 
--- Кнопки с биндом
-local AutoPBButton, AutoPBStatus, AutoPBKeyDisplay = createButton("Auto Perfect Block (Toggle)", Content, true)
-AutoPBKeyDisplay.Text = Settings.PBKey.Name 
-local GERAimButton, GERAimStatus, GERAimKeyDisplay = createButton("GER Aim (Toggle)", Content, true) 
-GERAimKeyDisplay.Text = Settings.GERKeyToggle.Name 
+
+-- Buttons with keybinds
+local AutoPBButton, AutoPBStatus, AutoPBKeyDisplay = createButton("Auto Perfect Block", Content, true)
+AutoPBKeyDisplay.Text = Settings.PBKey.Name
+local GERAimButton, GERAimStatus, GERAimKeyDisplay = createButton("GER Aim Toggle", Content, true)
+GERAimKeyDisplay.Text = Settings.GERKeyToggle.Name
 local PBModeButton, PBModeStatus = createButton("Block Mode", Content, false)
-local FOVSlider, FOVValue, FOVBack, FOVFill = createSlider("Aim FOV (studs)", 30, 100, 99, Content)
+
+-- FOV Slider
+local FOVSlider, FOVValue, FOVBack, FOVFill = createSlider("Aim FOV (studs)", 30, 500, Settings.AimFOV, Content) 
 
 local Footer = Instance.new("Frame")
 Footer.Size = UDim2.new(1, 0, 0, 40)
@@ -276,7 +313,7 @@ InfoText.Parent = Footer
 Content.CanvasSize = UDim2.new(0, 0, 0, ContentLayout.AbsoluteContentSize.Y)
 
 -- =========================================================================
---  UI HANDLERS
+-- UI HANDLERS
 -- =========================================================================
 
 local isListeningForKey = false
@@ -284,39 +321,67 @@ local keyToRebind = nil
 
 local function updateToggleStatus(Status, settingState)
     Status.Text = settingState and "ON" or "OFF"
-    Status.BackgroundColor3 = settingState and TornadoGray or Color3.fromRGB(50, 50, 55) 
+    Status.BackgroundColor3 = settingState and AccentColor or Color3.fromRGB(50, 50, 55)
     Status.TextColor3 = settingState and TextColorDark or Color3.fromRGB(200, 200, 200)
 end
 
--- Логика изменения бинда для AutoPB
+local function toggleFeature(settingName, statusElement)
+    Settings[settingName] = not Settings[settingName]
+    updateToggleStatus(statusElement, Settings[settingName])
+end
+
+-- Toggle logic for AutoPB
 AutoPBButton.MouseButton1Click:Connect(function()
+    if not isListeningForKey and (not AutoPBKeyDisplay or UserInputService:GetMouseLocation().X < AutoPBKeyDisplay.AbsolutePosition.X) then
+        toggleFeature("AutoPB", AutoPBStatus)
+    end
+end)
+
+-- Toggle logic for GERAim
+GERAimButton.MouseButton1Click:Connect(function()
+    if not isListeningForKey and (not GERAimKeyDisplay or UserInputService:GetMouseLocation().X < GERAimKeyDisplay.AbsolutePosition.X) then
+        toggleFeature("GERAim", GERAimStatus)
+    end
+end)
+
+-- Rebind logic for AutoPB
+AutoPBKeyDisplay.MouseButton1Click:Connect(function()
     if isListeningForKey then return end
     isListeningForKey = true
     keyToRebind = "PBKey"
     AutoPBKeyDisplay.Text = "[...]"
-    AutoPBKeyDisplay.BackgroundColor3 = Color3.fromRGB(255, 150, 0) 
+    AutoPBKeyDisplay.BackgroundColor3 = RebindColor
     AutoPBKeyDisplay.TextColor3 = TextColorDark
 end)
 
--- Логика изменения бинда для GERAim
-GERAimButton.MouseButton1Click:Connect(function()
+-- Rebind logic for GERAim
+GERAimKeyDisplay.MouseButton1Click:Connect(function()
     if isListeningForKey then return end
     isListeningForKey = true
     keyToRebind = "GERKeyToggle"
     GERAimKeyDisplay.Text = "[...]"
-    GERAimKeyDisplay.BackgroundColor3 = Color3.fromRGB(255, 150, 0) 
+    GERAimKeyDisplay.BackgroundColor3 = RebindColor
     GERAimKeyDisplay.TextColor3 = TextColorDark
 end)
+
 
 PBModeButton.MouseButton1Click:Connect(function()
     Settings.PBMode = Settings.PBMode == 1 and 2 or 1
     local modeText = Settings.PBMode == 1 and "Normal" or "Interrupt"
     PBModeStatus.Text = modeText
-    PBModeStatus.BackgroundColor3 = Settings.PBMode == 2 and Color3.fromRGB(255, 150, 0) or Color3.fromRGB(50, 50, 55)
+    PBModeStatus.BackgroundColor3 = Settings.PBMode == 2 and RebindColor or Color3.fromRGB(50, 50, 55)
 end)
 
+
+-- Initialize statuses
+updateToggleStatus(AutoPBStatus, Settings.AutoPB)
+updateToggleStatus(GERAimStatus, Settings.GERAim)
+local modeText = Settings.PBMode == 1 and "Normal" or "Interrupt"
+PBModeStatus.Text = modeText
+PBModeStatus.BackgroundColor3 = Settings.PBMode == 2 and RebindColor or Color3.fromRGB(50, 50, 55)
+
 -- =========================================================================
---  GAME LOGIC
+-- GAME LOGIC
 -- =========================================================================
 
 local function checkSound(soundID)
@@ -383,80 +448,88 @@ for _, player in pairs(Players:GetPlayers()) do if player ~= LocalPlayer then se
 Players.PlayerAdded:Connect(function(player) player.CharacterAdded:Connect(function(character) task.wait(0.5); setupPlayer(player) end) end)
 
 local aimConnection = nil
-local originalCameraCFrame = nil 
-local remoteEvent = game:GetService("Players").LocalPlayer.Character:WaitForChild("RemoteEvent")
+local originalCameraCFrame = nil
+local remoteEvent = nil
+
+-- Reliable remoteEvent initialization
+local function setupRemoteEvent(character)
+    remoteEvent = character:FindFirstChild("RemoteEvent")
+end
+LocalPlayer.CharacterAdded:Connect(function(char) task.wait(0.1); setupRemoteEvent(char) end)
+if LocalPlayer.Character then setupRemoteEvent(LocalPlayer.Character) end
 
 -- =========================================================================
---  INPUT HANDLER (Custom Binds)
+-- INPUT HANDLER
 -- =========================================================================
 
 UserInputService.InputBegan:Connect(function(input, processed)
     local KeyCode = input.KeyCode
 
-    -- 1. ЛОГИКА ПРОСЛУШИВАНИЯ БИНДА (Key Listener)
+    -- 1. REBIND LISTENER LOGIC
     if isListeningForKey and not processed and KeyCode.Value ~= 0 and KeyCode ~= Enum.KeyCode.RightShift then
-        
-        Settings[keyToRebind] = KeyCode
-        isListeningForKey = false
-        
+
         local KeyDisplayElement
         if keyToRebind == "PBKey" then
+            Settings.PBKey = KeyCode
             KeyDisplayElement = AutoPBKeyDisplay
         elseif keyToRebind == "GERKeyToggle" then
+            Settings.GERKeyToggle = KeyCode
             KeyDisplayElement = GERAimKeyDisplay
         end
-        
-        KeyDisplayElement.Text = KeyCode.Name
-        KeyDisplayElement.BackgroundColor3 = DarkAccent 
-        KeyDisplayElement.TextColor3 = TornadoGray 
-        
-        keyToRebind = nil 
+
+        isListeningForKey = false
+
+        if KeyDisplayElement then
+            KeyDisplayElement.Text = KeyCode.Name
+            KeyDisplayElement.BackgroundColor3 = DarkAccent
+            KeyDisplayElement.TextColor3 = TornadoGray
+        end
+
+        keyToRebind = nil
         return
     end
 
-    -- 2. ЛОГИКА TOGGLE AUTO PB
+    -- 2. AUTO PB TOGGLE LOGIC
     if KeyCode == Settings.PBKey and not isListeningForKey and not processed then
-        Settings.AutoPB = not Settings.AutoPB
-        updateToggleStatus(AutoPBStatus, Settings.AutoPB)
+        toggleFeature("AutoPB", AutoPBStatus)
     end
-    
-    -- 3. ЛОГИКА TOGGLE GER AIM
+
+    -- 3. GER AIM TOGGLE LOGIC
     if KeyCode == Settings.GERKeyToggle and not isListeningForKey and not processed then
-        Settings.GERAim = not Settings.GERAim
-        updateToggleStatus(GERAimStatus, Settings.GERAim)
+        toggleFeature("GERAim", GERAimStatus)
     end
-    
-    -- 4. ЛОГИКА GER AIM (X key - ACTION)
-    if not processed and KeyCode == Enum.KeyCode.X and Settings.GERAim then
+
+    -- 4. GER AIM (X key - ACTION)
+    if not processed and KeyCode == Enum.KeyCode.X and Settings.GERAim and remoteEvent then
+        
         local target = getClosestPlayer()
         if target and target.Character then
             local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
-            
+
             if targetHRP then
                 originalCameraCFrame = Camera.CFrame
-                
+
                 aimConnection = RunService.RenderStepped:Connect(function()
-                    if targetHRP and targetHRP.Parent and (targetHRP.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude <= Settings.AimFOV then
-                        Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetHRP.Position)
+                    if targetHRP and targetHRP.Parent and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                        if (targetHRP.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude <= Settings.AimFOV then
+                            Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetHRP.Position)
+                        else
+                            if aimConnection then aimConnection:Disconnect(); aimConnection = nil end
+                            if originalCameraCFrame then Camera.CFrame = originalCameraCFrame; originalCameraCFrame = nil end
+                            remoteEvent:FireServer("InputEnded", {Input = Enum.KeyCode.X})
+                        end
                     else
                         if aimConnection then aimConnection:Disconnect(); aimConnection = nil end
                         if originalCameraCFrame then Camera.CFrame = originalCameraCFrame; originalCameraCFrame = nil end
-                        
-                        -- Если цель потеряна, отключаем Aim и отправляем InputEnded
-                        if remoteEvent then
-                            remoteEvent:FireServer("InputEnded", {Input = Enum.KeyCode.X})
-                        end
+                        remoteEvent:FireServer("InputEnded", {Input = Enum.KeyCode.X})
                     end
                 end)
-                
-                -- АКТИВАЦИЯ GER AIM: FireServer(InputBegan)
-                if remoteEvent then
-                    remoteEvent:FireServer("InputBegan", {Input = Enum.KeyCode.X})
-                end
+
+                remoteEvent:FireServer("InputBegan", {Input = Enum.KeyCode.X})
             end
         end
     end
-    
+
     -- 5. TOGGLE MENU (RightShift)
     if KeyCode == Enum.KeyCode.RightShift then
         MainFrame.Visible = not MainFrame.Visible
@@ -464,15 +537,12 @@ UserInputService.InputBegan:Connect(function(input, processed)
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.X then
+    if input.KeyCode == Enum.KeyCode.X and remoteEvent then
         if aimConnection then aimConnection:Disconnect(); aimConnection = nil end
         if originalCameraCFrame then Camera.CFrame = originalCameraCFrame; originalCameraCFrame = nil end
 
-        -- ОТКЛЮЧЕНИЕ GER AIM: FireServer(InputEnded)
-        if remoteEvent then
-            remoteEvent:FireServer("InputEnded", {Input = Enum.KeyCode.X})
-        end
+        remoteEvent:FireServer("InputEnded", {Input = Enum.KeyCode.X})
     end
 end)
 
-print("Mellstroy hub loaded! RightShift = toggle menu, F/G = toggle features, X = use GER Aim")
+print("Mellstroy hub (Classic) loaded! RightShift = toggle menu, F/G = toggle features, X = use GER Aim")
