@@ -18,6 +18,10 @@ local TextColorBright = Color3.fromRGB(240, 240, 240)
 local TextColorDark = Color3.fromRGB(30, 30, 30)
 local AccentColor = Color3.fromRGB(0, 200, 255) -- For ON status
 local RebindColor = Color3.fromRGB(255, 150, 0) -- For rebind mode
+--- НОВОЕ: Цвета для списка друзей
+local FriendAddColor = Color3.fromRGB(40, 200, 120)
+local FriendRemoveColor = Color3.fromRGB(220, 80, 80)
+
 
 -- Settings
 local Settings = {
@@ -25,8 +29,10 @@ local Settings = {
     GERAim = false,
     PBMode = 1,
     AimFOV = 99,
-    PBKey = Enum.KeyCode.F,       -- Key to toggle AutoPB (Default: F)
-    GERKeyToggle = Enum.KeyCode.G -- Key to toggle GER Aim on/off (Default: G)
+    PBKey = Enum.KeyCode.F,     -- Key to toggle AutoPB (Default: F)
+    GERKeyToggle = Enum.KeyCode.G, -- Key to toggle GER Aim on/off (Default: G)
+    --- НОВОЕ: Таблица для хранения друзей
+    Friends = {}
 }
 
 -- Attack data
@@ -53,8 +59,8 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 380, 0, 340)
-MainFrame.Position = UDim2.new(0.5, -190, 0.5, -170)
+MainFrame.Size = UDim2.new(0, 380, 0, 550) -- ИЗМЕНЕНО: Увеличена высота для списка друзей
+MainFrame.Position = UDim2.new(0.5, -190, 0.5, -275) -- ИЗМЕНЕНО: Скорректирована позиция
 MainFrame.BackgroundColor3 = BackgroundColor
 MainFrame.BorderSizePixel = 0
 MainFrame.Parent = ScreenGui
@@ -110,6 +116,8 @@ Content.ScrollBarThickness = 4
 Content.ScrollBarImageColor3 = TornadoGray
 Content.CanvasSize = UDim2.new(0, 0, 0, 0)
 Content.Parent = MainFrame
+-- Content.AutomaticCanvasSize = Enum.AutomaticSize.Y -- Использование AutomaticCanvasSize для главного скроллфрейма
+Content.AutomaticCanvasSize = Enum.AutomaticSize.None -- Оставляем старый подход, чтобы не сломать логику updateCanvasSize
 
 local ContentLayout = Instance.new("UIListLayout")
 ContentLayout.Parent = Content
@@ -153,9 +161,7 @@ local function createButton(text, parent, isKeyBind)
 
     if isKeyBind then
         ButtonText.Size = UDim2.new(1, -130, 1, 0)
-
         Status.Position = UDim2.new(1, -115, 0.5, -12.5)
-
         KeyDisplay = Instance.new("TextButton")
         KeyDisplay.Size = UDim2.new(0, 50, 0, 25)
         KeyDisplay.Position = UDim2.new(1, -60, 0.5, -12.5)
@@ -166,16 +172,13 @@ local function createButton(text, parent, isKeyBind)
         KeyDisplay.TextSize = 12
         KeyDisplay.Font = Enum.Font.GothamBold
         KeyDisplay.Parent = Button
-
         local KeyCorner = Instance.new("UICorner")
         KeyCorner.CornerRadius = UDim.new(0, 8)
         KeyCorner.Parent = KeyDisplay
     else
         Status.Position = UDim2.new(1, -60, 0.5, -12.5)
     end
-
     Status.Parent = Button
-
     local StatusCorner = Instance.new("UICorner")
     StatusCorner.CornerRadius = UDim.new(0, 8)
     StatusCorner.Parent = Status
@@ -183,7 +186,6 @@ local function createButton(text, parent, isKeyBind)
     Button.MouseEnter:Connect(function()
         TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(45, 45, 50)}):Play()
     end)
-
     Button.MouseLeave:Connect(function()
         TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = DarkAccent}):Play()
     end)
@@ -197,7 +199,6 @@ local function createSlider(text, min, max, default, parent)
     Container.BackgroundColor3 = DarkAccent
     Container.BorderSizePixel = 0
     Container.Parent = parent
-
     local Corner = Instance.new("UICorner")
     Corner.CornerRadius = UDim.new(0, 10)
     Corner.Parent = Container
@@ -235,17 +236,14 @@ local function createSlider(text, min, max, default, parent)
     SliderCorner.Parent = SliderBack
 
     local SliderFill = Instance.new("Frame")
-    -- Calculate initial fill based on min/max
     SliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0) 
     SliderFill.BackgroundColor3 = AccentColor
     SliderFill.BorderSizePixel = 0
     SliderFill.Parent = SliderBack
-
     local FillCorner = Instance.new("UICorner")
     FillCorner.CornerRadius = UDim.new(1, 0)
     FillCorner.Parent = SliderFill
-
-    -- Interactivity
+    
     local dragging = false
     local function updateSlider(inputPos)
         local absPos = SliderBack.AbsolutePosition
@@ -253,22 +251,21 @@ local function createSlider(text, min, max, default, parent)
         local newVal = math.floor(min + relX * (max - min))
         SliderFill.Size = UDim2.new(relX, 0, 1, 0)
         ValueLabel.Text = tostring(newVal)
-        Settings.AimFOV = newVal -- Update setting here
+        Settings.AimFOV = newVal
     end
-
-    local conn1, conn2, conn3
-    conn1 = SliderBack.InputBegan:Connect(function(input)
+    
+    SliderBack.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
             updateSlider(UserInputService:GetMouseLocation())
         end
     end)
-    conn2 = UserInputService.InputChanged:Connect(function(input)
+    UserInputService.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
             updateSlider(UserInputService:GetMouseLocation())
         end
     end)
-    conn3 = UserInputService.InputEnded:Connect(function(input)
+    UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = false
         end
@@ -276,7 +273,6 @@ local function createSlider(text, min, max, default, parent)
 
     return Container, ValueLabel, SliderBack, SliderFill
 end
-
 
 -- Buttons with keybinds
 local AutoPBButton, AutoPBStatus, AutoPBKeyDisplay = createButton("Auto Perfect Block", Content, true)
@@ -288,17 +284,40 @@ local PBModeButton, PBModeStatus = createButton("Block Mode", Content, false)
 -- FOV Slider
 local FOVSlider, FOVValue, FOVBack, FOVFill = createSlider("Aim FOV (studs)", 30, 500, Settings.AimFOV, Content) 
 
+--- НОВОЕ: Разделитель и заголовок для списка друзей
+local FriendsTitle = Instance.new("TextLabel")
+FriendsTitle.Size = UDim2.new(1, -10, 0, 30)
+FriendsTitle.BackgroundTransparency = 1
+FriendsTitle.Text = "Server Players"
+FriendsTitle.TextColor3 = TornadoGray
+FriendsTitle.Font = Enum.Font.GothamBold
+FriendsTitle.TextSize = 18
+FriendsTitle.Parent = Content
+
+--- ИЗМЕНЕНО: Контейнер для списка игроков теперь ScrollingFrame
+local PlayerListFrame = Instance.new("ScrollingFrame")
+PlayerListFrame.Size = UDim2.new(1, -10, 0, 150) -- Видимая область
+PlayerListFrame.BackgroundTransparency = 1
+PlayerListFrame.BorderSizePixel = 0 -- Добавлено, чтобы не было рамки
+PlayerListFrame.ScrollBarThickness = 4 -- Толщина скролла
+PlayerListFrame.ScrollBarImageColor3 = TornadoGray -- Цвет скролла
+PlayerListFrame.CanvasSize = UDim2.new(0, 0, 0, 0) -- Будет обновляться
+PlayerListFrame.Parent = Content
+local PlayerListLayout = Instance.new("UIListLayout")
+PlayerListLayout.Padding = UDim.new(0, 5)
+PlayerListLayout.Parent = PlayerListFrame
+PlayerListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+-- PlayerListLayout.AutomaticSize = Enum.AutomaticSize.Y -- Включаем автоматическое определение размера для PlayerListLayout
+
 local Footer = Instance.new("Frame")
 Footer.Size = UDim2.new(1, 0, 0, 40)
 Footer.Position = UDim2.new(0, 0, 1, -40)
 Footer.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 Footer.BorderSizePixel = 0
 Footer.Parent = MainFrame
-
 local FooterCorner = Instance.new("UICorner")
 FooterCorner.CornerRadius = UDim.new(0, 15)
 FooterCorner.Parent = Footer
-
 local InfoText = Instance.new("TextLabel")
 InfoText.Size = UDim2.new(1, -20, 1, 0)
 InfoText.Position = UDim2.new(0, 10, 0, 0)
@@ -310,14 +329,101 @@ InfoText.Font = Enum.Font.Gotham
 InfoText.TextXAlignment = Enum.TextXAlignment.Left
 InfoText.Parent = Footer
 
-Content.CanvasSize = UDim2.new(0, 0, 0, ContentLayout.AbsoluteContentSize.Y)
+--- НОВОЕ: Таблица для хранения GUI элементов игроков
+local PlayerEntries = {}
 
 -- =========================================================================
--- UI HANDLERS
+-- UI HANDLERS & FRIENDS LIST LOGIC
 -- =========================================================================
-
 local isListeningForKey = false
 local keyToRebind = nil
+
+local function updatePlayerListCanvasSize()
+    task.wait()
+    -- Обновление CanvasSize для PlayerListFrame
+    PlayerListFrame.CanvasSize = UDim2.new(0, 0, 0, PlayerListLayout.AbsoluteContentSize.Y)
+end
+
+local function updateCanvasSize()
+    task.wait()
+    -- Обновление CanvasSize для основного Content ScrollingFrame
+    Content.CanvasSize = UDim2.new(0, 0, 0, ContentLayout.AbsoluteContentSize.Y)
+end
+
+--- НОВОЕ: Функция для обновления внешнего вида кнопки друга
+local function updateFriendButton(button, playerName)
+    if Settings.Friends[playerName] then
+        button.Text = "Remove"
+        button.BackgroundColor3 = FriendRemoveColor
+        button.TextColor3 = TextColorBright
+    else
+        button.Text = "Add"
+        button.BackgroundColor3 = FriendAddColor
+        button.TextColor3 = TextColorDark
+    end
+end
+
+--- НОВОЕ: Функция для создания элемента игрока в списке
+local function createPlayerEntry(player)
+    if PlayerEntries[player] then return end
+    
+    local Entry = Instance.new("Frame")
+    Entry.Size = UDim2.new(1, 0, 0, 35)
+    Entry.BackgroundColor3 = DarkAccent
+    Entry.BorderSizePixel = 0
+    Entry.Parent = PlayerListFrame -- В PlayerListFrame, который теперь ScrollingFrame
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 8)
+    Corner.Parent = Entry
+
+    local NameLabel = Instance.new("TextLabel")
+    NameLabel.Size = UDim2.new(1, -100, 1, 0)
+    NameLabel.Position = UDim2.new(0, 10, 0, 0)
+    NameLabel.BackgroundTransparency = 1
+    NameLabel.Text = player.Name
+    NameLabel.TextColor3 = TextColorBright
+    NameLabel.Font = Enum.Font.Gotham
+    NameLabel.TextSize = 14
+    NameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    NameLabel.Parent = Entry
+
+    local FriendButton = Instance.new("TextButton")
+    FriendButton.Size = UDim2.new(0, 70, 0, 25)
+    FriendButton.Position = UDim2.new(1, -80, 0.5, -12.5)
+    FriendButton.BorderSizePixel = 0
+    FriendButton.Font = Enum.Font.GothamBold
+    FriendButton.TextSize = 12
+    FriendButton.Parent = Entry
+    local BtnCorner = Instance.new("UICorner")
+    BtnCorner.CornerRadius = UDim.new(0, 6)
+    BtnCorner.Parent = FriendButton
+
+    updateFriendButton(FriendButton, player.Name)
+
+    FriendButton.MouseButton1Click:Connect(function()
+        -- Удаляем друга, если он есть, иначе добавляем.
+        Settings.Friends[player.Name] = not Settings.Friends[player.Name]
+        updateFriendButton(FriendButton, player.Name)
+    end)
+    
+    PlayerEntries[player] = Entry
+    updatePlayerListCanvasSize() -- Обновляем размер прокрутки списка игроков
+    updateCanvasSize() -- Обновляем размер прокрутки основного контента
+end
+
+--- НОВОЕ: Функция для удаления элемента игрока
+local function removePlayerEntry(player)
+    if PlayerEntries[player] then
+        PlayerEntries[player]:Destroy()
+        PlayerEntries[player] = nil
+        updatePlayerListCanvasSize() -- Обновляем размер прокрутки списка игроков
+        updateCanvasSize() -- Обновляем размер прокрутки основного контента
+    end
+    -- Также удаляем из таблицы друзей, если он там был
+    if Settings.Friends[player.Name] then
+        Settings.Friends[player.Name] = nil
+    end
+end
 
 local function updateToggleStatus(Status, settingState)
     Status.Text = settingState and "ON" or "OFF"
@@ -330,21 +436,18 @@ local function toggleFeature(settingName, statusElement)
     updateToggleStatus(statusElement, Settings[settingName])
 end
 
--- Toggle logic for AutoPB
 AutoPBButton.MouseButton1Click:Connect(function()
     if not isListeningForKey and (not AutoPBKeyDisplay or UserInputService:GetMouseLocation().X < AutoPBKeyDisplay.AbsolutePosition.X) then
         toggleFeature("AutoPB", AutoPBStatus)
     end
 end)
 
--- Toggle logic for GERAim
 GERAimButton.MouseButton1Click:Connect(function()
     if not isListeningForKey and (not GERAimKeyDisplay or UserInputService:GetMouseLocation().X < GERAimKeyDisplay.AbsolutePosition.X) then
         toggleFeature("GERAim", GERAimStatus)
     end
 end)
 
--- Rebind logic for AutoPB
 AutoPBKeyDisplay.MouseButton1Click:Connect(function()
     if isListeningForKey then return end
     isListeningForKey = true
@@ -354,7 +457,6 @@ AutoPBKeyDisplay.MouseButton1Click:Connect(function()
     AutoPBKeyDisplay.TextColor3 = TextColorDark
 end)
 
--- Rebind logic for GERAim
 GERAimKeyDisplay.MouseButton1Click:Connect(function()
     if isListeningForKey then return end
     isListeningForKey = true
@@ -364,7 +466,6 @@ GERAimKeyDisplay.MouseButton1Click:Connect(function()
     GERAimKeyDisplay.TextColor3 = TextColorDark
 end)
 
-
 PBModeButton.MouseButton1Click:Connect(function()
     Settings.PBMode = Settings.PBMode == 1 and 2 or 1
     local modeText = Settings.PBMode == 1 and "Normal" or "Interrupt"
@@ -372,13 +473,13 @@ PBModeButton.MouseButton1Click:Connect(function()
     PBModeStatus.BackgroundColor3 = Settings.PBMode == 2 and RebindColor or Color3.fromRGB(50, 50, 55)
 end)
 
-
--- Initialize statuses
 updateToggleStatus(AutoPBStatus, Settings.AutoPB)
 updateToggleStatus(GERAimStatus, Settings.GERAim)
 local modeText = Settings.PBMode == 1 and "Normal" or "Interrupt"
 PBModeStatus.Text = modeText
 PBModeStatus.BackgroundColor3 = Settings.PBMode == 2 and RebindColor or Color3.fromRGB(50, 50, 55)
+updateCanvasSize() -- Инициализация размера прокрутки
+updatePlayerListCanvasSize() -- Инициализация размера прокрутки списка игроков
 
 -- =========================================================================
 -- GAME LOGIC
@@ -419,7 +520,8 @@ end
 local function getClosestPlayer()
     local closest, shortestDist = nil, math.huge
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
+        --- ИЗМЕНЕНО: Добавлена проверка на друга
+        if player ~= LocalPlayer and player.Character and not Settings.Friends[player.Name] then
             local humanoid = player.Character:FindFirstChild("Humanoid"); local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
             if humanoid and humanoid.Health > 0 and rootPart then
                 local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -444,14 +546,23 @@ local function setupPlayer(player)
     end)
 end
 
-for _, player in pairs(Players:GetPlayers()) do if player ~= LocalPlayer then setupPlayer(player) end end
-Players.PlayerAdded:Connect(function(player) player.CharacterAdded:Connect(function(character) task.wait(0.5); setupPlayer(player) end) end)
+for _, player in pairs(Players:GetPlayers()) do 
+    if player ~= LocalPlayer then 
+        setupPlayer(player) 
+        createPlayerEntry(player) --- НОВОЕ
+    end 
+end
+Players.PlayerAdded:Connect(function(player) 
+    createPlayerEntry(player) --- НОВОЕ
+    player.CharacterAdded:Connect(function(character) task.wait(0.5); setupPlayer(player) end) 
+end)
+--- НОВОЕ: Обработка выхода игрока
+Players.PlayerRemoving:Connect(removePlayerEntry)
 
 local aimConnection = nil
 local originalCameraCFrame = nil
 local remoteEvent = nil
 
--- Reliable remoteEvent initialization
 local function setupRemoteEvent(character)
     remoteEvent = character:FindFirstChild("RemoteEvent")
 end
@@ -464,10 +575,7 @@ if LocalPlayer.Character then setupRemoteEvent(LocalPlayer.Character) end
 
 UserInputService.InputBegan:Connect(function(input, processed)
     local KeyCode = input.KeyCode
-
-    -- 1. REBIND LISTENER LOGIC
     if isListeningForKey and not processed and KeyCode.Value ~= 0 and KeyCode ~= Enum.KeyCode.RightShift then
-
         local KeyDisplayElement
         if keyToRebind == "PBKey" then
             Settings.PBKey = KeyCode
@@ -476,39 +584,27 @@ UserInputService.InputBegan:Connect(function(input, processed)
             Settings.GERKeyToggle = KeyCode
             KeyDisplayElement = GERAimKeyDisplay
         end
-
         isListeningForKey = false
-
         if KeyDisplayElement then
             KeyDisplayElement.Text = KeyCode.Name
             KeyDisplayElement.BackgroundColor3 = DarkAccent
             KeyDisplayElement.TextColor3 = TornadoGray
         end
-
         keyToRebind = nil
         return
     end
-
-    -- 2. AUTO PB TOGGLE LOGIC
     if KeyCode == Settings.PBKey and not isListeningForKey and not processed then
         toggleFeature("AutoPB", AutoPBStatus)
     end
-
-    -- 3. GER AIM TOGGLE LOGIC
     if KeyCode == Settings.GERKeyToggle and not isListeningForKey and not processed then
         toggleFeature("GERAim", GERAimStatus)
     end
-
-    -- 4. GER AIM (X key - ACTION)
     if not processed and KeyCode == Enum.KeyCode.X and Settings.GERAim and remoteEvent then
-        
         local target = getClosestPlayer()
         if target and target.Character then
             local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
-
             if targetHRP then
                 originalCameraCFrame = Camera.CFrame
-
                 aimConnection = RunService.RenderStepped:Connect(function()
                     if targetHRP and targetHRP.Parent and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
                         if (targetHRP.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude <= Settings.AimFOV then
@@ -524,13 +620,10 @@ UserInputService.InputBegan:Connect(function(input, processed)
                         remoteEvent:FireServer("InputEnded", {Input = Enum.KeyCode.X})
                     end
                 end)
-
                 remoteEvent:FireServer("InputBegan", {Input = Enum.KeyCode.X})
             end
         end
     end
-
-    -- 5. TOGGLE MENU (RightShift)
     if KeyCode == Enum.KeyCode.RightShift then
         MainFrame.Visible = not MainFrame.Visible
     end
@@ -540,9 +633,8 @@ UserInputService.InputEnded:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.X and remoteEvent then
         if aimConnection then aimConnection:Disconnect(); aimConnection = nil end
         if originalCameraCFrame then Camera.CFrame = originalCameraCFrame; originalCameraCFrame = nil end
-
         remoteEvent:FireServer("InputEnded", {Input = Enum.KeyCode.X})
     end
 end)
 
-print("Mellstroy hub (Classic) loaded! RightShift = toggle menu, F/G = toggle features, X = use GER Aim")
+print("Mellstroy hub (Classic) with Friends List loaded! RightShift = toggle menu, F/G = toggle features, X = use GER Aim")
