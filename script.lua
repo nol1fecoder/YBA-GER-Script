@@ -1,7 +1,3 @@
--- =========================================================================
--- MELLSTROY HUB - CORE INITIALIZATION (TORNADO VIBES - FINAL CLEAN)
--- =========================================================================
-
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
@@ -18,7 +14,6 @@ local TextColorBright = Color3.fromRGB(240, 240, 240)
 local TextColorDark = Color3.fromRGB(30, 30, 30)
 local AccentColor = Color3.fromRGB(0, 200, 255) -- For ON status
 local RebindColor = Color3.fromRGB(255, 150, 0) -- For rebind mode
---- НОВОЕ: Цвета для списка друзей
 local FriendAddColor = Color3.fromRGB(40, 200, 120)
 local FriendRemoveColor = Color3.fromRGB(220, 80, 80)
 
@@ -31,7 +26,6 @@ local Settings = {
     AimFOV = 99,
     PBKey = Enum.KeyCode.F,     -- Key to toggle AutoPB (Default: F)
     GERKeyToggle = Enum.KeyCode.G, -- Key to toggle GER Aim on/off (Default: G)
-    --- НОВОЕ: Таблица для хранения друзей
     Friends = {}
 }
 
@@ -48,10 +42,6 @@ local Attacks = {
     ["Six Pistols Finisher"] = 0.45, ["Stone Free Finisher"] = 0.35, ["Ora Kicks"] = 0.15, ["lightning_jabs"] = 0.15,
 }
 
--- =========================================================================
--- GUI SETUP
--- =========================================================================
-
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "GERMenu"
 ScreenGui.Parent = game.CoreGui
@@ -59,8 +49,8 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 380, 0, 550) -- ИЗМЕНЕНО: Увеличена высота для списка друзей
-MainFrame.Position = UDim2.new(0.5, -190, 0.5, -275) -- ИЗМЕНЕНО: Скорректирована позиция
+MainFrame.Size = UDim2.new(0, 380, 0, 550) 
+MainFrame.Position = UDim2.new(0.5, -190, 0.5, -275) 
 MainFrame.BackgroundColor3 = BackgroundColor
 MainFrame.BorderSizePixel = 0
 MainFrame.Parent = ScreenGui
@@ -116,8 +106,7 @@ Content.ScrollBarThickness = 4
 Content.ScrollBarImageColor3 = TornadoGray
 Content.CanvasSize = UDim2.new(0, 0, 0, 0)
 Content.Parent = MainFrame
--- Content.AutomaticCanvasSize = Enum.AutomaticSize.Y -- Использование AutomaticCanvasSize для главного скроллфрейма
-Content.AutomaticCanvasSize = Enum.AutomaticSize.None -- Оставляем старый подход, чтобы не сломать логику updateCanvasSize
+Content.AutomaticCanvasSize = Enum.AutomaticSize.None 
 
 local ContentLayout = Instance.new("UIListLayout")
 ContentLayout.Parent = Content
@@ -236,7 +225,7 @@ local function createSlider(text, min, max, default, parent)
     SliderCorner.Parent = SliderBack
 
     local SliderFill = Instance.new("Frame")
-    SliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0) 
+    SliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)  
     SliderFill.BackgroundColor3 = AccentColor
     SliderFill.BorderSizePixel = 0
     SliderFill.Parent = SliderBack
@@ -284,7 +273,6 @@ local PBModeButton, PBModeStatus = createButton("Block Mode", Content, false)
 -- FOV Slider
 local FOVSlider, FOVValue, FOVBack, FOVFill = createSlider("Aim FOV (studs)", 30, 500, Settings.AimFOV, Content) 
 
---- НОВОЕ: Разделитель и заголовок для списка друзей
 local FriendsTitle = Instance.new("TextLabel")
 FriendsTitle.Size = UDim2.new(1, -10, 0, 30)
 FriendsTitle.BackgroundTransparency = 1
@@ -294,20 +282,18 @@ FriendsTitle.Font = Enum.Font.GothamBold
 FriendsTitle.TextSize = 18
 FriendsTitle.Parent = Content
 
---- ИЗМЕНЕНО: Контейнер для списка игроков теперь ScrollingFrame
 local PlayerListFrame = Instance.new("ScrollingFrame")
-PlayerListFrame.Size = UDim2.new(1, -10, 0, 150) -- Видимая область
+PlayerListFrame.Size = UDim2.new(1, -10, 0, 150) 
 PlayerListFrame.BackgroundTransparency = 1
-PlayerListFrame.BorderSizePixel = 0 -- Добавлено, чтобы не было рамки
-PlayerListFrame.ScrollBarThickness = 4 -- Толщина скролла
-PlayerListFrame.ScrollBarImageColor3 = TornadoGray -- Цвет скролла
-PlayerListFrame.CanvasSize = UDim2.new(0, 0, 0, 0) -- Будет обновляться
+PlayerListFrame.BorderSizePixel = 0 
+PlayerListFrame.ScrollBarThickness = 4 
+PlayerListFrame.ScrollBarImageColor3 = TornadoGray 
+PlayerListFrame.CanvasSize = UDim2.new(0, 0, 0, 0) 
 PlayerListFrame.Parent = Content
 local PlayerListLayout = Instance.new("UIListLayout")
 PlayerListLayout.Padding = UDim.new(0, 5)
 PlayerListLayout.Parent = PlayerListFrame
 PlayerListLayout.SortOrder = Enum.SortOrder.LayoutOrder
--- PlayerListLayout.AutomaticSize = Enum.AutomaticSize.Y -- Включаем автоматическое определение размера для PlayerListLayout
 
 local Footer = Instance.new("Frame")
 Footer.Size = UDim2.new(1, 0, 0, 40)
@@ -329,28 +315,21 @@ InfoText.Font = Enum.Font.Gotham
 InfoText.TextXAlignment = Enum.TextXAlignment.Left
 InfoText.Parent = Footer
 
---- НОВОЕ: Таблица для хранения GUI элементов игроков
 local PlayerEntries = {}
 
--- =========================================================================
--- UI HANDLERS & FRIENDS LIST LOGIC
--- =========================================================================
 local isListeningForKey = false
 local keyToRebind = nil
 
 local function updatePlayerListCanvasSize()
     task.wait()
-    -- Обновление CanvasSize для PlayerListFrame
     PlayerListFrame.CanvasSize = UDim2.new(0, 0, 0, PlayerListLayout.AbsoluteContentSize.Y)
 end
 
 local function updateCanvasSize()
     task.wait()
-    -- Обновление CanvasSize для основного Content ScrollingFrame
     Content.CanvasSize = UDim2.new(0, 0, 0, ContentLayout.AbsoluteContentSize.Y)
 end
 
---- НОВОЕ: Функция для обновления внешнего вида кнопки друга
 local function updateFriendButton(button, playerName)
     if Settings.Friends[playerName] then
         button.Text = "Remove"
@@ -363,7 +342,6 @@ local function updateFriendButton(button, playerName)
     end
 end
 
---- НОВОЕ: Функция для создания элемента игрока в списке
 local function createPlayerEntry(player)
     if PlayerEntries[player] then return end
     
@@ -371,7 +349,7 @@ local function createPlayerEntry(player)
     Entry.Size = UDim2.new(1, 0, 0, 35)
     Entry.BackgroundColor3 = DarkAccent
     Entry.BorderSizePixel = 0
-    Entry.Parent = PlayerListFrame -- В PlayerListFrame, который теперь ScrollingFrame
+    Entry.Parent = PlayerListFrame 
     local Corner = Instance.new("UICorner")
     Corner.CornerRadius = UDim.new(0, 8)
     Corner.Parent = Entry
@@ -401,25 +379,22 @@ local function createPlayerEntry(player)
     updateFriendButton(FriendButton, player.Name)
 
     FriendButton.MouseButton1Click:Connect(function()
-        -- Удаляем друга, если он есть, иначе добавляем.
         Settings.Friends[player.Name] = not Settings.Friends[player.Name]
         updateFriendButton(FriendButton, player.Name)
     end)
     
     PlayerEntries[player] = Entry
-    updatePlayerListCanvasSize() -- Обновляем размер прокрутки списка игроков
-    updateCanvasSize() -- Обновляем размер прокрутки основного контента
+    updatePlayerListCanvasSize() 
+    updateCanvasSize() 
 end
 
---- НОВОЕ: Функция для удаления элемента игрока
 local function removePlayerEntry(player)
     if PlayerEntries[player] then
         PlayerEntries[player]:Destroy()
         PlayerEntries[player] = nil
-        updatePlayerListCanvasSize() -- Обновляем размер прокрутки списка игроков
-        updateCanvasSize() -- Обновляем размер прокрутки основного контента
+        updatePlayerListCanvasSize() 
+        updateCanvasSize() 
     end
-    -- Также удаляем из таблицы друзей, если он там был
     if Settings.Friends[player.Name] then
         Settings.Friends[player.Name] = nil
     end
@@ -463,7 +438,7 @@ GERAimKeyDisplay.MouseButton1Click:Connect(function()
     keyToRebind = "GERKeyToggle"
     GERAimKeyDisplay.Text = "[...]"
     GERAimKeyDisplay.BackgroundColor3 = RebindColor
-    GERAimKeyDisplay.TextColor3 = TextColorDark
+    GERAimKeyDisplay.TextColor3 = DarkAccent
 end)
 
 PBModeButton.MouseButton1Click:Connect(function()
@@ -478,12 +453,8 @@ updateToggleStatus(GERAimStatus, Settings.GERAim)
 local modeText = Settings.PBMode == 1 and "Normal" or "Interrupt"
 PBModeStatus.Text = modeText
 PBModeStatus.BackgroundColor3 = Settings.PBMode == 2 and RebindColor or Color3.fromRGB(50, 50, 55)
-updateCanvasSize() -- Инициализация размера прокрутки
-updatePlayerListCanvasSize() -- Инициализация размера прокрутки списка игроков
-
--- =========================================================================
--- GAME LOGIC
--- =========================================================================
+updateCanvasSize() 
+updatePlayerListCanvasSize() 
 
 local function checkSound(soundID)
     local success, result = pcall(function()
@@ -520,7 +491,6 @@ end
 local function getClosestPlayer()
     local closest, shortestDist = nil, math.huge
     for _, player in pairs(Players:GetPlayers()) do
-        --- ИЗМЕНЕНО: Добавлена проверка на друга
         if player ~= LocalPlayer and player.Character and not Settings.Friends[player.Name] then
             local humanoid = player.Character:FindFirstChild("Humanoid"); local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
             if humanoid and humanoid.Health > 0 and rootPart then
@@ -549,14 +519,13 @@ end
 for _, player in pairs(Players:GetPlayers()) do 
     if player ~= LocalPlayer then 
         setupPlayer(player) 
-        createPlayerEntry(player) --- НОВОЕ
+        createPlayerEntry(player) 
     end 
 end
 Players.PlayerAdded:Connect(function(player) 
-    createPlayerEntry(player) --- НОВОЕ
+    createPlayerEntry(player) 
     player.CharacterAdded:Connect(function(character) task.wait(0.5); setupPlayer(player) end) 
 end)
---- НОВОЕ: Обработка выхода игрока
 Players.PlayerRemoving:Connect(removePlayerEntry)
 
 local aimConnection = nil
@@ -568,10 +537,6 @@ local function setupRemoteEvent(character)
 end
 LocalPlayer.CharacterAdded:Connect(function(char) task.wait(0.1); setupRemoteEvent(char) end)
 if LocalPlayer.Character then setupRemoteEvent(LocalPlayer.Character) end
-
--- =========================================================================
--- INPUT HANDLER
--- =========================================================================
 
 UserInputService.InputBegan:Connect(function(input, processed)
     local KeyCode = input.KeyCode
@@ -636,5 +601,3 @@ UserInputService.InputEnded:Connect(function(input)
         remoteEvent:FireServer("InputEnded", {Input = Enum.KeyCode.X})
     end
 end)
-
-print("Mellstroy hub (Classic) with Friends List loaded! RightShift = toggle menu, F/G = toggle features, X = use GER Aim")
