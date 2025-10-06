@@ -1,36 +1,35 @@
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 local Camera = game.Workspace.CurrentCamera
 
--- COLOR DEFINITIONS
-local TornadoGray = Color3.fromRGB(150, 160, 170)
-local DarkAccent = Color3.fromRGB(35, 35, 40)
-local BackgroundColor = Color3.fromRGB(20, 20, 25)
-local TextColorBright = Color3.fromRGB(240, 240, 240)
-local TextColorDark = Color3.fromRGB(30, 30, 30)
-local AccentColor = Color3.fromRGB(0, 200, 255) -- For ON status
-local RebindColor = Color3.fromRGB(255, 150, 0) -- For rebind mode
-local FriendAddColor = Color3.fromRGB(40, 200, 120)
-local FriendRemoveColor = Color3.fromRGB(220, 80, 80)
+local COLOR = {
+    TORNADO_GRAY = Color3.fromRGB(150, 160, 170),
+    DARK_ACCENT = Color3.fromRGB(35, 35, 40),
+    BACKGROUND = Color3.fromRGB(20, 20, 25),
+    TEXT_BRIGHT = Color3.fromRGB(240, 240, 240),
+    ACCENT_ON = Color3.fromRGB(0, 200, 255),
+    REBIND = Color3.fromRGB(255, 150, 0),
+    FRIEND_ADD = Color3.fromRGB(40, 200, 120),
+    FRIEND_REMOVE = Color3.fromRGB(220, 80, 80),
+    STATUS_OFF = Color3.fromRGB(50, 50, 55),
+    TEXT_OFF = Color3.fromRGB(200, 200, 200),
+    INFO_TEXT = Color3.fromRGB(120, 120, 120),
+}
 
-
--- Settings
 local Settings = {
     AutoPB = false,
     GERAim = false,
     PBMode = 1,
     AimFOV = 99,
-    PBKey = Enum.KeyCode.F,     -- Key to toggle AutoPB (Default: F)
-    GERKeyToggle = Enum.KeyCode.G, -- Key to toggle GER Aim on/off (Default: G)
+    PBKey = Enum.KeyCode.F,
+    GERKeyToggle = Enum.KeyCode.G,
     Friends = {}
 }
 
--- Attack data
-local Attacks = {
+local AttackTimings = {
     ["Kick Barrage"] = 0, ["Sticky Fingers Finisher"] = 0.35, ["Gun_Shot1"] = 0.15, ["Heavy_Charge"] = 0.35, ["Erasure"] = 0.35,
     ["Disc"] = 0.35, ["Propeller Charge"] = 0.35, ["Platinum Slam"] = 0.25, ["Chomp"] = 0.25, ["Scary Monsters Bite"] = 0.25,
     ["D4C Love Train Finisher"] = 0.35, ["D4C Finisher"] = 0.35, ["Tusk ACT 4 Finisher"] = 0.35, ["Gold Experience Finisher"] = 0.35,
@@ -42,6 +41,13 @@ local Attacks = {
     ["Six Pistols Finisher"] = 0.45, ["Stone Free Finisher"] = 0.35, ["Ora Kicks"] = 0.15, ["lightning_jabs"] = 0.15,
 }
 
+local PlayerEntries = {}
+local isListeningForKey = false
+local keyToRebind = nil
+local aimConnection = nil
+local originalCameraCFrame = nil
+local remoteEvent = nil
+
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "GERMenu"
 ScreenGui.Parent = game.CoreGui
@@ -51,98 +57,80 @@ ScreenGui.ResetOnSpawn = false
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 380, 0, 550) 
 MainFrame.Position = UDim2.new(0.5, -190, 0.5, -275) 
-MainFrame.BackgroundColor3 = BackgroundColor
+MainFrame.BackgroundColor3 = COLOR.BACKGROUND
 MainFrame.BorderSizePixel = 0
-MainFrame.Parent = ScreenGui
 MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.ClipsDescendants = true
+MainFrame.Parent = ScreenGui
 
-local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 15)
-MainCorner.Parent = MainFrame
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 15)
+Instance.new("UIStroke", MainFrame).Color = COLOR.TORNADO_GRAY
+MainFrame.UIStroke.Thickness = 1.5
+MainFrame.UIStroke.Transparency = 0.7
 
-local MainStroke = Instance.new("UIStroke")
-MainStroke.Color = TornadoGray
-MainStroke.Thickness = 1.5
-MainStroke.Transparency = 0.7
-MainStroke.Parent = MainFrame
-
-local Gradient = Instance.new("UIGradient")
+local Gradient = Instance.new("UIGradient", MainFrame)
 Gradient.Color = ColorSequence.new{
     ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 30)),
     ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 15, 20))
 }
 Gradient.Rotation = 45
-Gradient.Parent = MainFrame
 
-local TitleBar = Instance.new("Frame")
+local TitleBar = Instance.new("Frame", MainFrame)
 TitleBar.Size = UDim2.new(1, 0, 0, 50)
 TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-TitleBar.BorderSizePixel = 0
-TitleBar.Parent = MainFrame
+Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 15)
 
-local TitleCorner = Instance.new("UICorner")
-TitleCorner.CornerRadius = UDim.new(0, 15)
-TitleCorner.Parent = TitleBar
-
-local Title = Instance.new("TextLabel")
+local Title = Instance.new("TextLabel", TitleBar)
 Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 20, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "Mellstroy hub (Classic)"
-Title.TextColor3 = TornadoGray
+Title.Text = "Mellstroy Hub (Classic)"
+Title.TextColor3 = COLOR.TORNADO_GRAY
 Title.TextSize = 24
 Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = TitleBar
 
-local Content = Instance.new("ScrollingFrame")
+local Content = Instance.new("ScrollingFrame", MainFrame)
 Content.Size = UDim2.new(1, -30, 1, -100)
 Content.Position = UDim2.new(0, 15, 0, 60)
 Content.BackgroundTransparency = 1
 Content.BorderSizePixel = 0
 Content.ScrollBarThickness = 4
-Content.ScrollBarImageColor3 = TornadoGray
-Content.CanvasSize = UDim2.new(0, 0, 0, 0)
-Content.Parent = MainFrame
+Content.ScrollBarImageColor3 = COLOR.TORNADO_GRAY
 Content.AutomaticCanvasSize = Enum.AutomaticSize.None 
 
-local ContentLayout = Instance.new("UIListLayout")
-ContentLayout.Parent = Content
+local ContentLayout = Instance.new("UIListLayout", Content)
 ContentLayout.SortOrder = Enum.SortOrder.LayoutOrder
 ContentLayout.Padding = UDim.new(0, 10)
 
 local function createButton(text, parent, isKeyBind)
     local Button = Instance.new("TextButton")
     Button.Size = UDim2.new(1, -10, 0, 45)
-    Button.BackgroundColor3 = DarkAccent
+    Button.BackgroundColor3 = COLOR.DARK_ACCENT
     Button.BorderSizePixel = 0
     Button.Text = ""
     Button.AutoButtonColor = false
     Button.Parent = parent
 
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 10)
-    Corner.Parent = Button
+    Instance.new("UICorner", Button).CornerRadius = UDim.new(0, 10)
 
-    local ButtonText = Instance.new("TextLabel")
+    local ButtonText = Instance.new("TextLabel", Button)
     ButtonText.Size = UDim2.new(1, -20, 1, 0)
     ButtonText.Position = UDim2.new(0, 10, 0, 0)
     ButtonText.BackgroundTransparency = 1
     ButtonText.Text = text
-    ButtonText.TextColor3 = TextColorBright
+    ButtonText.TextColor3 = COLOR.TEXT_BRIGHT
     ButtonText.TextSize = 16
     ButtonText.Font = Enum.Font.GothamBold
     ButtonText.TextXAlignment = Enum.TextXAlignment.Left
-    ButtonText.Parent = Button
 
-    local Status = Instance.new("TextLabel")
+    local Status = Instance.new("TextLabel", Button)
     Status.Size = UDim2.new(0, 50, 0, 25)
-    Status.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+    Status.BackgroundColor3 = COLOR.STATUS_OFF
     Status.BorderSizePixel = 0
     Status.Text = "OFF"
-    Status.TextColor3 = Color3.fromRGB(200, 200, 200)
+    Status.TextColor3 = COLOR.TEXT_OFF
     Status.TextSize = 12
     Status.Font = Enum.Font.GothamBold
 
@@ -151,87 +139,69 @@ local function createButton(text, parent, isKeyBind)
     if isKeyBind then
         ButtonText.Size = UDim2.new(1, -130, 1, 0)
         Status.Position = UDim2.new(1, -115, 0.5, -12.5)
-        KeyDisplay = Instance.new("TextButton")
+        KeyDisplay = Instance.new("TextButton", Button)
         KeyDisplay.Size = UDim2.new(0, 50, 0, 25)
         KeyDisplay.Position = UDim2.new(1, -60, 0.5, -12.5)
-        KeyDisplay.BackgroundColor3 = DarkAccent
+        KeyDisplay.BackgroundColor3 = COLOR.DARK_ACCENT
         KeyDisplay.BorderSizePixel = 0
         KeyDisplay.Text = "KEY"
-        KeyDisplay.TextColor3 = TornadoGray
+        KeyDisplay.TextColor3 = COLOR.TORNADO_GRAY
         KeyDisplay.TextSize = 12
         KeyDisplay.Font = Enum.Font.GothamBold
-        KeyDisplay.Parent = Button
-        local KeyCorner = Instance.new("UICorner")
-        KeyCorner.CornerRadius = UDim.new(0, 8)
-        KeyCorner.Parent = KeyDisplay
+        Instance.new("UICorner", KeyDisplay).CornerRadius = UDim.new(0, 8)
     else
         Status.Position = UDim2.new(1, -60, 0.5, -12.5)
     end
-    Status.Parent = Button
-    local StatusCorner = Instance.new("UICorner")
-    StatusCorner.CornerRadius = UDim.new(0, 8)
-    StatusCorner.Parent = Status
+    Instance.new("UICorner", Status).CornerRadius = UDim.new(0, 8)
 
     Button.MouseEnter:Connect(function()
         TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(45, 45, 50)}):Play()
     end)
     Button.MouseLeave:Connect(function()
-        TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = DarkAccent}):Play()
+        TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = COLOR.DARK_ACCENT}):Play()
     end)
 
     return Button, Status, KeyDisplay
 end
 
 local function createSlider(text, min, max, default, parent)
-    local Container = Instance.new("Frame")
+    local Container = Instance.new("Frame", parent)
     Container.Size = UDim2.new(1, -10, 0, 60)
-    Container.BackgroundColor3 = DarkAccent
+    Container.BackgroundColor3 = COLOR.DARK_ACCENT
     Container.BorderSizePixel = 0
-    Container.Parent = parent
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 10)
-    Corner.Parent = Container
+    Instance.new("UICorner", Container).CornerRadius = UDim.new(0, 10)
 
-    local Label = Instance.new("TextLabel")
+    local Label = Instance.new("TextLabel", Container)
     Label.Size = UDim2.new(1, -100, 0, 25)
     Label.Position = UDim2.new(0, 10, 0, 5)
     Label.BackgroundTransparency = 1
     Label.Text = text
-    Label.TextColor3 = TextColorBright
+    Label.TextColor3 = COLOR.TEXT_BRIGHT
     Label.TextSize = 14
     Label.Font = Enum.Font.GothamBold
     Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = Container
 
-    local ValueLabel = Instance.new("TextLabel")
+    local ValueLabel = Instance.new("TextLabel", Container)
     ValueLabel.Size = UDim2.new(0, 70, 0, 25)
     ValueLabel.Position = UDim2.new(1, -80, 0, 5)
     ValueLabel.BackgroundTransparency = 1
     ValueLabel.Text = tostring(default)
-    ValueLabel.TextColor3 = TornadoGray
+    ValueLabel.TextColor3 = COLOR.TORNADO_GRAY
     ValueLabel.TextSize = 14
     ValueLabel.Font = Enum.Font.GothamBold
-    ValueLabel.Parent = Container
 
-    local SliderBack = Instance.new("Frame")
+    local SliderBack = Instance.new("Frame", Container)
     SliderBack.Size = UDim2.new(1, -20, 0, 6)
     SliderBack.Position = UDim2.new(0, 10, 0, 40)
-    SliderBack.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+    SliderBack.BackgroundColor3 = COLOR.STATUS_OFF
     SliderBack.BorderSizePixel = 0
-    SliderBack.Parent = Container
+    Instance.new("UICorner", SliderBack).CornerRadius = UDim.new(1, 0)
 
-    local SliderCorner = Instance.new("UICorner")
-    SliderCorner.CornerRadius = UDim.new(1, 0)
-    SliderCorner.Parent = SliderBack
-
-    local SliderFill = Instance.new("Frame")
+    local SliderFill = Instance.new("Frame", SliderBack)
     SliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)  
-    SliderFill.BackgroundColor3 = AccentColor
+    SliderFill.BackgroundColor3 = COLOR.ACCENT_ON
     SliderFill.BorderSizePixel = 0
-    SliderFill.Parent = SliderBack
-    local FillCorner = Instance.new("UICorner")
-    FillCorner.CornerRadius = UDim.new(1, 0)
-    FillCorner.Parent = SliderFill
+    Instance.new("UICorner", SliderFill).CornerRadius = UDim.new(1, 0)
     
     local dragging = false
     local function updateSlider(inputPos)
@@ -260,121 +230,105 @@ local function createSlider(text, min, max, default, parent)
         end
     end)
 
-    return Container, ValueLabel, SliderBack, SliderFill
+    return Container, ValueLabel
 end
 
--- Buttons with keybinds
 local AutoPBButton, AutoPBStatus, AutoPBKeyDisplay = createButton("Auto Perfect Block", Content, true)
 AutoPBKeyDisplay.Text = Settings.PBKey.Name
 local GERAimButton, GERAimStatus, GERAimKeyDisplay = createButton("GER Aim Toggle", Content, true)
 GERAimKeyDisplay.Text = Settings.GERKeyToggle.Name
 local PBModeButton, PBModeStatus = createButton("Block Mode", Content, false)
+local FOVSlider, FOVValue = createSlider("Aim FOV (studs)", 30, 500, Settings.AimFOV, Content) 
 
--- FOV Slider
-local FOVSlider, FOVValue, FOVBack, FOVFill = createSlider("Aim FOV (studs)", 30, 500, Settings.AimFOV, Content) 
-
-local FriendsTitle = Instance.new("TextLabel")
+local FriendsTitle = Instance.new("TextLabel", Content)
 FriendsTitle.Size = UDim2.new(1, -10, 0, 30)
 FriendsTitle.BackgroundTransparency = 1
 FriendsTitle.Text = "Server Players"
-FriendsTitle.TextColor3 = TornadoGray
+FriendsTitle.TextColor3 = COLOR.TORNADO_GRAY
 FriendsTitle.Font = Enum.Font.GothamBold
 FriendsTitle.TextSize = 18
-FriendsTitle.Parent = Content
 
-local PlayerListFrame = Instance.new("ScrollingFrame")
+local PlayerListFrame = Instance.new("ScrollingFrame", Content)
 PlayerListFrame.Size = UDim2.new(1, -10, 0, 150) 
 PlayerListFrame.BackgroundTransparency = 1
 PlayerListFrame.BorderSizePixel = 0 
 PlayerListFrame.ScrollBarThickness = 4 
-PlayerListFrame.ScrollBarImageColor3 = TornadoGray 
-PlayerListFrame.CanvasSize = UDim2.new(0, 0, 0, 0) 
-PlayerListFrame.Parent = Content
-local PlayerListLayout = Instance.new("UIListLayout")
+PlayerListFrame.ScrollBarImageColor3 = COLOR.TORNADO_GRAY 
+local PlayerListLayout = Instance.new("UIListLayout", PlayerListFrame)
 PlayerListLayout.Padding = UDim.new(0, 5)
-PlayerListLayout.Parent = PlayerListFrame
 PlayerListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
-local Footer = Instance.new("Frame")
+local Footer = Instance.new("Frame", MainFrame)
 Footer.Size = UDim2.new(1, 0, 0, 40)
 Footer.Position = UDim2.new(0, 0, 1, -40)
 Footer.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-Footer.BorderSizePixel = 0
-Footer.Parent = MainFrame
-local FooterCorner = Instance.new("UICorner")
-FooterCorner.CornerRadius = UDim.new(0, 15)
-FooterCorner.Parent = Footer
-local InfoText = Instance.new("TextLabel")
+Instance.new("UICorner", Footer).CornerRadius = UDim.new(0, 15)
+
+local InfoText = Instance.new("TextLabel", Footer)
 InfoText.Size = UDim2.new(1, -20, 1, 0)
 InfoText.Position = UDim2.new(0, 10, 0, 0)
 InfoText.BackgroundTransparency = 1
 InfoText.Text = "RightShift - Menu | F/G - Toggle Features | X - Use GER Aim"
-InfoText.TextColor3 = Color3.fromRGB(120, 120, 120)
+InfoText.TextColor3 = COLOR.INFO_TEXT
 InfoText.TextSize = 12
 InfoText.Font = Enum.Font.Gotham
 InfoText.TextXAlignment = Enum.TextXAlignment.Left
-InfoText.Parent = Footer
 
-local PlayerEntries = {}
-
-local isListeningForKey = false
-local keyToRebind = nil
-
-local function updatePlayerListCanvasSize()
+local function updateCanvasSizes()
     task.wait()
     PlayerListFrame.CanvasSize = UDim2.new(0, 0, 0, PlayerListLayout.AbsoluteContentSize.Y)
+    Content.CanvasSize = UDim2.new(0, 0, 0, ContentLayout.AbsoluteContentSize.Y)
 end
 
-local function updateCanvasSize()
-    task.wait()
-    Content.CanvasSize = UDim2.new(0, 0, 0, ContentLayout.AbsoluteContentSize.Y)
+local function updateToggleStatus(Status, settingState)
+    Status.Text = settingState and "ON" or "OFF"
+    Status.BackgroundColor3 = settingState and COLOR.ACCENT_ON or COLOR.STATUS_OFF
+    Status.TextColor3 = settingState and Color3.fromRGB(30, 30, 30) or COLOR.TEXT_OFF
+end
+
+local function toggleFeature(settingName, statusElement)
+    Settings[settingName] = not Settings[settingName]
+    updateToggleStatus(statusElement, Settings[settingName])
 end
 
 local function updateFriendButton(button, playerName)
     if Settings.Friends[playerName] then
         button.Text = "Remove"
-        button.BackgroundColor3 = FriendRemoveColor
-        button.TextColor3 = TextColorBright
+        button.BackgroundColor3 = COLOR.FRIEND_REMOVE
+        button.TextColor3 = COLOR.TEXT_BRIGHT
     else
         button.Text = "Add"
-        button.BackgroundColor3 = FriendAddColor
-        button.TextColor3 = TextColorDark
+        button.BackgroundColor3 = COLOR.FRIEND_ADD
+        button.TextColor3 = Color3.fromRGB(30, 30, 30)
     end
 end
 
 local function createPlayerEntry(player)
     if PlayerEntries[player] then return end
     
-    local Entry = Instance.new("Frame")
+    local Entry = Instance.new("Frame", PlayerListFrame)
     Entry.Size = UDim2.new(1, 0, 0, 35)
-    Entry.BackgroundColor3 = DarkAccent
+    Entry.BackgroundColor3 = COLOR.DARK_ACCENT
     Entry.BorderSizePixel = 0
-    Entry.Parent = PlayerListFrame 
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 8)
-    Corner.Parent = Entry
+    Instance.new("UICorner", Entry).CornerRadius = UDim.new(0, 8)
 
-    local NameLabel = Instance.new("TextLabel")
+    local NameLabel = Instance.new("TextLabel", Entry)
     NameLabel.Size = UDim2.new(1, -100, 1, 0)
     NameLabel.Position = UDim2.new(0, 10, 0, 0)
     NameLabel.BackgroundTransparency = 1
     NameLabel.Text = player.Name
-    NameLabel.TextColor3 = TextColorBright
+    NameLabel.TextColor3 = COLOR.TEXT_BRIGHT
     NameLabel.Font = Enum.Font.Gotham
     NameLabel.TextSize = 14
     NameLabel.TextXAlignment = Enum.TextXAlignment.Left
-    NameLabel.Parent = Entry
 
-    local FriendButton = Instance.new("TextButton")
+    local FriendButton = Instance.new("TextButton", Entry)
     FriendButton.Size = UDim2.new(0, 70, 0, 25)
     FriendButton.Position = UDim2.new(1, -80, 0.5, -12.5)
     FriendButton.BorderSizePixel = 0
     FriendButton.Font = Enum.Font.GothamBold
     FriendButton.TextSize = 12
-    FriendButton.Parent = Entry
-    local BtnCorner = Instance.new("UICorner")
-    BtnCorner.CornerRadius = UDim.new(0, 6)
-    BtnCorner.Parent = FriendButton
+    Instance.new("UICorner", FriendButton).CornerRadius = UDim.new(0, 6)
 
     updateFriendButton(FriendButton, player.Name)
 
@@ -384,31 +338,96 @@ local function createPlayerEntry(player)
     end)
     
     PlayerEntries[player] = Entry
-    updatePlayerListCanvasSize() 
-    updateCanvasSize() 
+    updateCanvasSizes()
 end
 
 local function removePlayerEntry(player)
     if PlayerEntries[player] then
         PlayerEntries[player]:Destroy()
         PlayerEntries[player] = nil
-        updatePlayerListCanvasSize() 
-        updateCanvasSize() 
+        updateCanvasSizes()
     end
-    if Settings.Friends[player.Name] then
-        Settings.Friends[player.Name] = nil
+    Settings.Friends[player.Name] = nil
+end
+
+local function checkSound(soundID)
+    local soundsFolder = game.ReplicatedStorage:FindFirstChild("Sounds")
+    if not soundsFolder then return nil end
+
+    for _, v in soundsFolder:GetChildren() do
+        if v:IsA("Sound") and v.SoundId == soundID then return v.Name end
+    end
+    return nil
+end
+
+local function performBlock(mode)
+    local character = LocalPlayer.Character
+    if not character or not remoteEvent then return end
+
+    pcall(function()
+        if mode == 2 then
+            remoteEvent:FireServer("InputEnded", {Input = Enum.KeyCode.E})
+            remoteEvent:FireServer("InputEnded", {Input = Enum.KeyCode.R})
+            task.wait(0.05)
+        end
+        remoteEvent:FireServer("StartBlocking")
+        task.wait(0.6)
+        remoteEvent:FireServer("StopBlocking")
+    end)
+end
+
+local function checkPBMove(character, moveName)
+    if not Settings.AutoPB or not AttackTimings[moveName] then return end
+    
+    local targetHRP = character:FindFirstChild("HumanoidRootPart")
+    local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not myHRP or not targetHRP then return end
+    
+    local distance = (myHRP.Position - targetHRP.Position).Magnitude
+    if distance < 30 then 
+        task.spawn(function()
+            task.wait(AttackTimings[moveName])
+            performBlock(Settings.PBMode) 
+        end)
     end
 end
 
-local function updateToggleStatus(Status, settingState)
-    Status.Text = settingState and "ON" or "OFF"
-    Status.BackgroundColor3 = settingState and AccentColor or Color3.fromRGB(50, 50, 55)
-    Status.TextColor3 = settingState and TextColorDark or Color3.fromRGB(200, 200, 200)
+local function getClosestPlayer()
+    local closest, shortestDist = nil, math.huge
+    local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not myHRP then return nil end
+
+    for _, player in Players:GetPlayers() do
+        if player ~= LocalPlayer and player.Character and not Settings.Friends[player.Name] then
+            local humanoid = player.Character:FindFirstChild("Humanoid")
+            local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
+            if humanoid and humanoid.Health > 0 and rootPart then
+                local dist = (myHRP.Position - rootPart.Position).Magnitude
+                if dist < shortestDist and dist < Settings.AimFOV then 
+                    closest = player
+                    shortestDist = dist
+                end
+            end
+        end
+    end
+    return closest
 end
 
-local function toggleFeature(settingName, statusElement)
-    Settings[settingName] = not Settings[settingName]
-    updateToggleStatus(statusElement, Settings[settingName])
+local function setupPlayer(player)
+    if not player.Character then return end
+
+    player.Character.DescendantAdded:Connect(function(child)
+        if Settings.AutoPB and child:IsA("Sound") and child.SoundId then
+            local moveName = checkSound(child.SoundId)
+            if moveName then 
+                checkPBMove(player.Character, moveName)
+            end
+        end
+    end)
+end
+
+local function setupRemoteEvent(character)
+    remoteEvent = character:FindFirstChild("RemoteEvent")
 end
 
 AutoPBButton.MouseButton1Click:Connect(function()
@@ -428,8 +447,8 @@ AutoPBKeyDisplay.MouseButton1Click:Connect(function()
     isListeningForKey = true
     keyToRebind = "PBKey"
     AutoPBKeyDisplay.Text = "[...]"
-    AutoPBKeyDisplay.BackgroundColor3 = RebindColor
-    AutoPBKeyDisplay.TextColor3 = TextColorDark
+    AutoPBKeyDisplay.BackgroundColor3 = COLOR.REBIND
+    AutoPBKeyDisplay.TextColor3 = Color3.fromRGB(30, 30, 30)
 end)
 
 GERAimKeyDisplay.MouseButton1Click:Connect(function()
@@ -437,109 +456,20 @@ GERAimKeyDisplay.MouseButton1Click:Connect(function()
     isListeningForKey = true
     keyToRebind = "GERKeyToggle"
     GERAimKeyDisplay.Text = "[...]"
-    GERAimKeyDisplay.BackgroundColor3 = RebindColor
-    GERAimKeyDisplay.TextColor3 = DarkAccent
+    GERAimKeyDisplay.BackgroundColor3 = COLOR.REBIND
+    GERAimKeyDisplay.TextColor3 = Color3.fromRGB(30, 30, 30)
 end)
 
 PBModeButton.MouseButton1Click:Connect(function()
     Settings.PBMode = Settings.PBMode == 1 and 2 or 1
     local modeText = Settings.PBMode == 1 and "Normal" or "Interrupt"
     PBModeStatus.Text = modeText
-    PBModeStatus.BackgroundColor3 = Settings.PBMode == 2 and RebindColor or Color3.fromRGB(50, 50, 55)
+    PBModeStatus.BackgroundColor3 = Settings.PBMode == 2 and COLOR.REBIND or COLOR.STATUS_OFF
 end)
-
-updateToggleStatus(AutoPBStatus, Settings.AutoPB)
-updateToggleStatus(GERAimStatus, Settings.GERAim)
-local modeText = Settings.PBMode == 1 and "Normal" or "Interrupt"
-PBModeStatus.Text = modeText
-PBModeStatus.BackgroundColor3 = Settings.PBMode == 2 and RebindColor or Color3.fromRGB(50, 50, 55)
-updateCanvasSize() 
-updatePlayerListCanvasSize() 
-
-local function checkSound(soundID)
-    local success, result = pcall(function()
-        for _, v in pairs(game.ReplicatedStorage.Sounds:GetChildren()) do
-            if v.SoundId and v.SoundId == soundID then return v.Name end
-        end
-    end)
-    return success and result or nil
-end
-
-local function performBlock(mode)
-    local character = LocalPlayer.Character
-    if not character then return end
-    local remoteEvent = character:FindFirstChild("RemoteEvent")
-    if not remoteEvent then return end
-    pcall(function()
-        if mode == 2 then
-            remoteEvent:FireServer("InputEnded", {Input = Enum.KeyCode.E}); remoteEvent:FireServer("InputEnded", {Input = Enum.KeyCode.R}); task.wait(0.05)
-        end
-        remoteEvent:FireServer("StartBlocking"); task.wait(0.6); remoteEvent:FireServer("StopBlocking")
-    end)
-end
-
-local function checkPBMove(player, move)
-    if not Settings.AutoPB or not Attacks[move] then return end
-    local character = LocalPlayer.Character
-    if not character then return end
-    local hrp = character:FindFirstChild("HumanoidRootPart"); local playerHRP = player:FindFirstChild("HumanoidRootPart")
-    if not hrp or not playerHRP then return end
-    local distance = (hrp.Position - playerHRP.Position).Magnitude
-    if distance < 30 then task.wait(Attacks[move]); performBlock(Settings.PBMode) end
-end
-
-local function getClosestPlayer()
-    local closest, shortestDist = nil, math.huge
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and not Settings.Friends[player.Name] then
-            local humanoid = player.Character:FindFirstChild("Humanoid"); local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
-            if humanoid and humanoid.Health > 0 and rootPart then
-                local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                if myHRP then
-                    local dist = (myHRP.Position - rootPart.Position).Magnitude
-                    if dist < shortestDist and dist < Settings.AimFOV then closest, shortestDist = player, dist end
-                end
-            end
-        end
-    end
-    return closest
-end
-
-local function setupPlayer(player)
-    if not player.Character then return end
-    player.Character.DescendantAdded:Connect(function(child)
-        if not Settings.AutoPB then return end
-        if child:IsA("Sound") and child.SoundId then
-            local moveName = checkSound(child.SoundId)
-            if moveName then task.spawn(function() checkPBMove(player.Character, moveName) end) end
-        end
-    end)
-end
-
-for _, player in pairs(Players:GetPlayers()) do 
-    if player ~= LocalPlayer then 
-        setupPlayer(player) 
-        createPlayerEntry(player) 
-    end 
-end
-Players.PlayerAdded:Connect(function(player) 
-    createPlayerEntry(player) 
-    player.CharacterAdded:Connect(function(character) task.wait(0.5); setupPlayer(player) end) 
-end)
-Players.PlayerRemoving:Connect(removePlayerEntry)
-
-local aimConnection = nil
-local originalCameraCFrame = nil
-local remoteEvent = nil
-
-local function setupRemoteEvent(character)
-    remoteEvent = character:FindFirstChild("RemoteEvent")
-end
-LocalPlayer.CharacterAdded:Connect(function(char) task.wait(0.1); setupRemoteEvent(char) end)
-if LocalPlayer.Character then setupRemoteEvent(LocalPlayer.Character) end
 
 UserInputService.InputBegan:Connect(function(input, processed)
     local KeyCode = input.KeyCode
+
     if isListeningForKey and not processed and KeyCode.Value ~= 0 and KeyCode ~= Enum.KeyCode.RightShift then
         local KeyDisplayElement
         if keyToRebind == "PBKey" then
@@ -552,31 +482,37 @@ UserInputService.InputBegan:Connect(function(input, processed)
         isListeningForKey = false
         if KeyDisplayElement then
             KeyDisplayElement.Text = KeyCode.Name
-            KeyDisplayElement.BackgroundColor3 = DarkAccent
-            KeyDisplayElement.TextColor3 = TornadoGray
+            KeyDisplayElement.BackgroundColor3 = COLOR.DARK_ACCENT
+            KeyDisplayElement.TextColor3 = COLOR.TORNADO_GRAY
         end
         keyToRebind = nil
         return
     end
+
     if KeyCode == Settings.PBKey and not isListeningForKey and not processed then
         toggleFeature("AutoPB", AutoPBStatus)
-    end
-    if KeyCode == Settings.GERKeyToggle and not isListeningForKey and not processed then
+    elseif KeyCode == Settings.GERKeyToggle and not isListeningForKey and not processed then
         toggleFeature("GERAim", GERAimStatus)
-    end
-    if not processed and KeyCode == Enum.KeyCode.X and Settings.GERAim and remoteEvent then
+    elseif KeyCode == Enum.KeyCode.RightShift then
+        MainFrame.Visible = not MainFrame.Visible
+    elseif not processed and KeyCode == Enum.KeyCode.X and Settings.GERAim and remoteEvent then
         local target = getClosestPlayer()
         if target and target.Character then
             local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
             if targetHRP then
                 originalCameraCFrame = Camera.CFrame
+                
+                if aimConnection then aimConnection:Disconnect() end
+
                 aimConnection = RunService.RenderStepped:Connect(function()
                     if targetHRP and targetHRP.Parent and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
                         if (targetHRP.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude <= Settings.AimFOV then
-                            Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetHRP.Position)
+                            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, targetHRP.Position), 0.5)
                         else
-                            if aimConnection then aimConnection:Disconnect(); aimConnection = nil end
-                            if originalCameraCFrame then Camera.CFrame = originalCameraCFrame; originalCameraCFrame = nil end
+                            aimConnection:Disconnect()
+                            aimConnection = nil
+                            Camera.CFrame = originalCameraCFrame
+                            originalCameraCFrame = nil
                             remoteEvent:FireServer("InputEnded", {Input = Enum.KeyCode.X})
                         end
                     else
@@ -589,9 +525,6 @@ UserInputService.InputBegan:Connect(function(input, processed)
             end
         end
     end
-    if KeyCode == Enum.KeyCode.RightShift then
-        MainFrame.Visible = not MainFrame.Visible
-    end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
@@ -601,3 +534,28 @@ UserInputService.InputEnded:Connect(function(input)
         remoteEvent:FireServer("InputEnded", {Input = Enum.KeyCode.X})
     end
 end)
+
+updateToggleStatus(AutoPBStatus, Settings.AutoPB)
+updateToggleStatus(GERAimStatus, Settings.GERAim)
+local modeText = Settings.PBMode == 1 and "Normal" or "Interrupt"
+PBModeStatus.Text = modeText
+PBModeStatus.BackgroundColor3 = Settings.PBMode == 2 and COLOR.REBIND or COLOR.STATUS_OFF
+
+for _, player in Players:GetPlayers() do 
+    if player ~= LocalPlayer then 
+        setupPlayer(player) 
+        createPlayerEntry(player) 
+    end 
+end
+
+Players.PlayerAdded:Connect(function(player) 
+    createPlayerEntry(player) 
+    player.CharacterAdded:Connect(function(character) task.wait(0.5); setupPlayer(player) end) 
+end)
+
+Players.PlayerRemoving:Connect(removePlayerEntry)
+
+LocalPlayer.CharacterAdded:Connect(function(char) task.wait(0.1); setupRemoteEvent(char) end)
+if LocalPlayer.Character then setupRemoteEvent(LocalPlayer.Character) end
+
+updateCanvasSizes()
